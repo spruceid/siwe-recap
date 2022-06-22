@@ -218,6 +218,18 @@ pub enum Error {
 mod test {
     use super::*;
 
+    const SIWE_NO_CAPS: &'static str =
+        "example.com wants you to sign in with your Ethereum account:
+0x0000000000000000000000000000000000000000
+
+By signing this message I am signing in with Ethereum.
+
+URI: did:key:example
+Version: 1
+Chain ID: 1
+Nonce: mynonce1
+Issued At: 2022-06-21T12:00:00.000Z";
+
     const SIWE: &'static str =
 "example.com wants you to sign in with your Ethereum account:
 0x0000000000000000000000000000000000000000
@@ -232,6 +244,32 @@ Issued At: 2022-06-21T12:00:00.000Z
 Resources:
 - urn:capability:credential:eyJkZWZhdWx0X2FjdGlvbnMiOlsicHJlc2VudCJdfQ
 - urn:capability:kepler:eyJ0YXJnZXRlZF9hY3Rpb25zIjp7ImtlcGxlcjplbnM6ZXhhbXBsZS5ldGg6Ly9kZWZhdWx0L2t2IjpbImxpc3QiLCJnZXQiLCJtZXRhZGF0YSJdLCJrZXBsZXI6ZW5zOmV4YW1wbGUuZXRoOi8vZGVmYXVsdC9rdi9kYXBwLXNwYWNlIjpbImxpc3QiLCJnZXQiLCJtZXRhZGF0YSIsInB1dCIsImRlbGV0ZSJdfX0";
+
+    #[test]
+    fn no_caps() {
+        let msg = DelegationBuilder::new(Message {
+            domain: "example.com".parse().unwrap(),
+            address: Default::default(),
+            statement: None,
+            uri: "did:key:example".parse().unwrap(),
+            version: siwe::Version::V1,
+            chain_id: 1,
+            nonce: "mynonce1".into(),
+            issued_at: "2022-06-21T12:00:00.000Z".parse().unwrap(),
+            expiration_time: None,
+            not_before: None,
+            request_id: None,
+            resources: vec![],
+        })
+        .build()
+        .expect("failed to build SIWE delegation");
+
+        assert_eq!(
+            SIWE_NO_CAPS,
+            msg.to_string(),
+            "generated SIWE message did not match expectation"
+        );
+    }
 
     #[test]
     fn build_delegation() {
