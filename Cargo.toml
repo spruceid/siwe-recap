@@ -1,5 +1,5 @@
 [package]
-name = "siwe-rs-capabilities"
+name = "siwe-capability-delegation"
 version = "0.1.0"
 edition = "2021"
 
