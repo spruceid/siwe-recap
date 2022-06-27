@@ -57,6 +57,11 @@ impl Capability {
         self
     }
 
+    pub fn with_fields(mut self, fields: HashMap<String, Value>) -> Self {
+        self.inner.extra_fields.extend(fields);
+        self
+    }
+
     pub fn with_action(mut self, target: String, action: String) -> Self {
         if let Some(actions) = self.inner.targeted_actions.get_mut(&target) {
             actions.push(action);
