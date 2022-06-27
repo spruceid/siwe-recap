@@ -49,7 +49,7 @@ pub fn extract_capabilities(message: &Message) -> Result<Vec<Capability>, Error>
 impl Capability {
     const RESOURCE_PREFIX: &'static str = "urn:capability:";
 
-    pub fn new(namespace: String, default_actions: Option<Vec<String>>) -> Result<Self, Error> {
+    pub fn new(namespace: String, default_actions: Vec<String>) -> Result<Self, Error> {
         absolute_iri::<UriSpec>(&format!("{}:", namespace))
             .map_err(Error::InvalidNamespace)
             .map(|()| Self {
@@ -163,9 +163,9 @@ impl DelegationBuilder {
 }
 
 impl CapabilityInner {
-    fn new(default_actions: Option<Vec<String>>) -> Self {
+    fn new(default_actions: Vec<String>) -> Self {
         Self {
-            default_actions: default_actions.unwrap_or_default(),
+            default_actions: default_actions,
             extra_fields: Default::default(),
             targeted_actions: Default::default(),
         }
@@ -287,11 +287,9 @@ Resources:
             request_id: None,
             resources: vec![],
         })
+        .with_capability(Capability::new("credential".into(), vec!["present".into()]).unwrap())
         .with_capability(
-            Capability::new("credential".into(), Some(vec!["present".into()])).unwrap(),
-        )
-        .with_capability(
-            Capability::new("kepler".into(), None)
+            Capability::new("kepler".into(), vec![])
                 .unwrap()
                 .with_actions(
                     "kepler:ens:example.eth://default/kv".parse().unwrap(),

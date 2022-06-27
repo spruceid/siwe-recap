@@ -23,10 +23,10 @@ let msg: Message = DelegationBuilder::new(Message {
     resources: vec![],
 })
 .with_capability(
-    Capability::new("credential".into(), Some(vec!["present".into()])).unwrap(),
+    Capability::new("credential".into(), vec!["present".into()]).unwrap(),
 )
 .with_capability(
-    Capability::new("kepler".into(), None)
+    Capability::new("kepler".into(), vec![])
 	.unwrap()
 	.with_actions(
 	    "kepler:ens:example.eth://default/kv".parse().unwrap(),
