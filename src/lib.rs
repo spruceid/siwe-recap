@@ -1,5 +1,3 @@
-mod serde_uri_string;
-
 use std::collections::{BTreeMap, HashMap};
 
 use iri_string::{spec::UriSpec, types::UriString, validate::absolute_iri};
@@ -17,12 +15,8 @@ pub struct Capability {
 pub struct CapabilityInner {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     default_actions: Vec<String>,
-    #[serde(
-        default,
-        skip_serializing_if = "BTreeMap::is_empty",
-        with = "serde_uri_string"
-    )]
-    targeted_actions: BTreeMap<UriString, Vec<String>>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    targeted_actions: BTreeMap<String, Vec<String>>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     extra_fields: HashMap<String, Value>,
 }
@@ -63,7 +57,7 @@ impl Capability {
         self
     }
 
-    pub fn with_action(mut self, target: UriString, action: String) -> Self {
+    pub fn with_action(mut self, target: String, action: String) -> Self {
         if let Some(actions) = self.inner.targeted_actions.get_mut(&target) {
             actions.push(action);
         } else {
@@ -72,7 +66,7 @@ impl Capability {
         self
     }
 
-    pub fn with_actions(mut self, target: UriString, actions: Vec<String>) -> Self {
+    pub fn with_actions(mut self, target: String, actions: Vec<String>) -> Self {
         if let Some(current_actions) = self.inner.targeted_actions.get_mut(&target) {
             current_actions.extend_from_slice(&actions);
         } else {
@@ -292,13 +286,11 @@ Resources:
             Capability::new("kepler".into(), vec![])
                 .unwrap()
                 .with_actions(
-                    "kepler:ens:example.eth://default/kv".parse().unwrap(),
+                    "kepler:ens:example.eth://default/kv".to_string(),
                     vec!["list".into(), "get".into(), "metadata".into()],
                 )
                 .with_actions(
-                    "kepler:ens:example.eth://default/kv/dapp-space"
-                        .parse()
-                        .unwrap(),
+                    "kepler:ens:example.eth://default/kv/dapp-space".to_string(),
                     vec![
                         "list".into(),
                         "get".into(),
