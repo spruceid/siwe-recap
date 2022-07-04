@@ -1,3 +1,6 @@
+mod eq_set;
+use eq_set::EqSet;
+
 use std::collections::{BTreeMap, HashMap};
 
 use iri_string::{spec::UriSpec, types::UriString, validate::absolute_iri};
@@ -12,11 +15,12 @@ pub struct Capability {
 }
 
 #[derive(Clone, Default, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CapabilityInner {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     default_actions: Vec<String>,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
-    targeted_actions: BTreeMap<String, Vec<String>>,
+    targeted_actions: BTreeMap<String, EqSet<String>>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     extra_fields: HashMap<String, Value>,
 }
@@ -64,18 +68,22 @@ impl Capability {
 
     pub fn with_action(mut self, target: String, action: String) -> Self {
         if let Some(actions) = self.inner.targeted_actions.get_mut(&target) {
-            actions.push(action);
+            actions.insert(action);
         } else {
-            self.inner.targeted_actions.insert(target, vec![action]);
+            let mut actions = EqSet::default();
+            actions.insert(action);
+            self.inner.targeted_actions.insert(target, actions);
         }
         self
     }
 
-    pub fn with_actions(mut self, target: String, actions: Vec<String>) -> Self {
+    pub fn with_actions<I: Iterator<Item = String>>(mut self, target: String, actions: I) -> Self {
         if let Some(current_actions) = self.inner.targeted_actions.get_mut(&target) {
-            current_actions.extend_from_slice(&actions);
+            current_actions.insert_all(actions);
         } else {
-            self.inner.targeted_actions.insert(target, actions);
+            self.inner
+                .targeted_actions
+                .insert(target, actions.collect());
         }
         self
     }
@@ -164,7 +172,7 @@ impl DelegationBuilder {
 impl CapabilityInner {
     fn new(default_actions: Vec<String>) -> Self {
         Self {
-            default_actions: default_actions,
+            default_actions,
             extra_fields: Default::default(),
             targeted_actions: Default::default(),
         }
@@ -183,12 +191,29 @@ impl CapabilityInner {
     }
 
     fn to_statement<'l>(&'l self, namespace: &'l str) -> impl Iterator<Item = String> + 'l {
-        std::iter::once(self.default_actions.join(", "))
+        let default_actions = std::iter::once(self.default_actions.join(", "))
             .filter(|actions| !actions.is_empty())
-            .map(move |actions| format!("{}: {} for any.", namespace, actions))
-            .chain(self.targeted_actions.iter().map(move |(target, actions)| {
-                format!("{}: {} for {}.", namespace, actions.join(", "), target)
-            }))
+            .map(move |actions| format!("{}: {} for any.", namespace, actions));
+
+        let action_sets: EqSet<&[String]> =
+            self.targeted_actions.values().map(AsRef::as_ref).collect();
+
+        let targeted_actions = action_sets.into_iter().map(move |action_set| {
+            let targets = self
+                .targeted_actions
+                .iter()
+                .filter(|(_, actions)| actions.as_ref() == action_set)
+                .map(|(target, _)| target.as_ref())
+                .collect::<Vec<&str>>();
+            format!(
+                "{}: {} for {}.",
+                namespace,
+                action_set.join(", "),
+                targets.join(", ")
+            )
+        });
+
+        default_actions.chain(targeted_actions)
     }
 }
 
@@ -229,20 +254,7 @@ Chain ID: 1
 Nonce: mynonce1
 Issued At: 2022-06-21T12:00:00.000Z";
 
-    const SIWE: &'static str =
-"example.com wants you to sign in with your Ethereum account:
-0x0000000000000000000000000000000000000000
-
-By signing this message I am signing in with Ethereum and authorizing the presented URI to perform the following actions on my behalf: (1) credential: present for any. (2) kepler: list, get, metadata for kepler:ens:example.eth://default/kv. (3) kepler: list, get, metadata, put, delete for kepler:ens:example.eth://default/kv/dapp-space.
-
-URI: did:key:example
-Version: 1
-Chain ID: 1
-Nonce: mynonce1
-Issued At: 2022-06-21T12:00:00.000Z
-Resources:
-- urn:capability:credential:eyJkZWZhdWx0X2FjdGlvbnMiOlsicHJlc2VudCJdfQ
-- urn:capability:kepler:eyJ0YXJnZXRlZF9hY3Rpb25zIjp7ImtlcGxlcjplbnM6ZXhhbXBsZS5ldGg6Ly9kZWZhdWx0L2t2IjpbImxpc3QiLCJnZXQiLCJtZXRhZGF0YSJdLCJrZXBsZXI6ZW5zOmV4YW1wbGUuZXRoOi8vZGVmYXVsdC9rdi9kYXBwLXNwYWNlIjpbImxpc3QiLCJnZXQiLCJtZXRhZGF0YSIsInB1dCIsImRlbGV0ZSJdfX0";
+    const SIWE: &'static str = include_str!("../tests/siwe_with_caps.txt");
 
     #[test]
     fn no_caps() {
@@ -292,17 +304,19 @@ Resources:
                 .unwrap()
                 .with_actions(
                     "kepler:ens:example.eth://default/kv".to_string(),
-                    vec!["list".into(), "get".into(), "metadata".into()],
+                    ["list", "get", "metadata"].iter().map(|&s| s.into()),
+                )
+                .with_actions(
+                    "kepler:ens:example.eth://default/kv/public".to_string(),
+                    ["list", "get", "metadata", "put", "delete"]
+                        .iter()
+                        .map(|&s| s.into()),
                 )
                 .with_actions(
                     "kepler:ens:example.eth://default/kv/dapp-space".to_string(),
-                    vec![
-                        "list".into(),
-                        "get".into(),
-                        "metadata".into(),
-                        "put".into(),
-                        "delete".into(),
-                    ],
+                    ["list", "get", "metadata", "put", "delete"]
+                        .iter()
+                        .map(|&s| s.into()),
                 ),
         )
         .build()

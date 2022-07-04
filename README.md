@@ -22,29 +22,27 @@ let msg: Message = DelegationBuilder::new(Message {
     request_id: None,
     resources: vec![],
 })
-.with_capability(
-    Capability::new("credential".into(), vec!["present".into()]).unwrap(),
-)
+.with_capability(Capability::new("credential".into(), vec!["present".into()]).unwrap())
 .with_capability(
     Capability::new("kepler".into(), vec![])
 	.unwrap()
 	.with_actions(
-	    "kepler:ens:example.eth://default/kv".parse().unwrap(),
-	    vec!["list".into(), "get".into(), "metadata".into()],
-	)
+	    "kepler:ens:example.eth://default/kv".to_string(),
+	    ["list", "get", "metadata"].iter().map(|&s| s.into()),
+	)   
 	.with_actions(
-	    "kepler:ens:example.eth://default/kv/dapp-space"
-		.parse()
-		.unwrap(),
-	    vec![
-		"list".into(),
-		"get".into(),
-		"metadata".into(),
-		"put".into(),
-		"delete".into(),
-	    ],
-	),
-)
+	    "kepler:ens:example.eth://default/kv/public".to_string(),
+	    ["list", "get", "metadata", "put", "delete"]
+		.iter()
+		.map(|&s| s.into()),
+	)   
+	.with_actions(
+	    "kepler:ens:example.eth://default/kv/dapp-space".to_string(),
+	    ["list", "get", "metadata", "put", "delete"]
+		.iter()
+		.map(|&s| s.into()),
+	),  
+)   
 .build()?;
 ```
 
@@ -52,15 +50,17 @@ Which produces this SIWE message:
 ```
 example.com wants you to sign in with your Ethereum account:
 0x0000000000000000000000000000000000000000
-By signing this message I am signing in with Ethereum and authorizing the presented URI to perform the following actions on my behalf: (1) credential: present for any. (2) kepler: list, get, metadata for kepler:ens:example.eth://default/kv. (3) kepler: list, get, metadata, put, delete for kepler:ens:example.eth://default/kv/dapp-space.
+
+By signing this message I am signing in with Ethereum and authorizing the presented URI to perform the following actions on my behalf: (1) credential: present for any. (2) kepler: list, get, metadata for kepler:ens:example.eth://default/kv. (3) kepler: list, get, metadata, put, delete for kepler:ens:example.eth://default/kv/dapp-space, kepler:ens:example.eth://default/kv/public.
+
 URI: did:key:example
 Version: 1
 Chain ID: 1
 Nonce: mynonce1
 Issued At: 2022-06-21T12:00:00.000Z
 Resources:
-- urn:capability:credential:eyJkZWZhdWx0X2FjdGlvbnMiOlsicHJlc2VudCJdfQ
-- urn:capability:kepler:eyJ0YXJnZXRlZF9hY3Rpb25zIjp7ImtlcGxlcjplbnM6ZXhhbXBsZS5ldGg6Ly9kZWZhdWx0L2t2IjpbImxpc3QiLCJnZXQiLCJtZXRhZGF0YSJdLCJrZXBsZXI6ZW5zOmV4YW1wbGUuZXRoOi8vZGVmYXVsdC9rdi9kYXBwLXNwYWNlIjpbImxpc3QiLCJnZXQiLCJtZXRhZGF0YSIsInB1dCIsImRlbGV0ZSJdfX0
+- urn:capability:credential:eyJkZWZhdWx0QWN0aW9ucyI6WyJwcmVzZW50Il19
+- urn:capability:kepler:eyJ0YXJnZXRlZEFjdGlvbnMiOnsia2VwbGVyOmVuczpleGFtcGxlLmV0aDovL2RlZmF1bHQva3YiOlsibGlzdCIsImdldCIsIm1ldGFkYXRhIl0sImtlcGxlcjplbnM6ZXhhbXBsZS5ldGg6Ly9kZWZhdWx0L2t2L2RhcHAtc3BhY2UiOlsibGlzdCIsImdldCIsIm1ldGFkYXRhIiwicHV0IiwiZGVsZXRlIl0sImtlcGxlcjplbnM6ZXhhbXBsZS5ldGg6Ly9kZWZhdWx0L2t2L3B1YmxpYyI6WyJsaXN0IiwiZ2V0IiwibWV0YWRhdGEiLCJwdXQiLCJkZWxldGUiXX19
 ```
 
 ### Sign-in only
