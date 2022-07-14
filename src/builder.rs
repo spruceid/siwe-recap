@@ -1,6 +1,7 @@
 use crate::{Capability, Error, Namespace, Set, RESOURCE_PREFIX};
 
 use std::collections::{BTreeMap, HashMap};
+use std::fmt::Write;
 
 use iri_string::types::UriString;
 use serde_json::Value;
@@ -161,7 +162,9 @@ impl Builder {
             .flat_map(|(ns, cap)| cap.to_statement_lines(ns))
             .for_each(|line| {
                 line_no += 1;
-                statement.push_str(&format!(" ({}) {}", line_no, line));
+                // Ignore the error as write! is infallible for String.
+                // See: https://rust-lang.github.io/rust-clippy/master/index.html#format_push_string
+                let _ = write!(statement, " ({}) {}", line_no, line);
             });
 
         statement
