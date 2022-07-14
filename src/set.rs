@@ -1,10 +1,13 @@
-
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 #[derive(Clone, Debug, Default)]
-pub struct EqSet<T: Eq>(Vec<T>);
+/// A simple Set implementation that de-duplicates elements by [`Eq`].
+///
+/// Set is a glorified Vec with insertion checks, so to perform any read actions on a Set you
+/// should use the [`AsRef`] implementation to convert to a slice.
+pub struct Set<T: Eq>(Vec<T>);
 
-impl<T: Eq> FromIterator<T> for EqSet<T> {
+impl<T: Eq> FromIterator<T> for Set<T> {
     fn from_iter<I>(i: I) -> Self
     where
         I: IntoIterator<Item = T>,
@@ -17,7 +20,7 @@ impl<T: Eq> FromIterator<T> for EqSet<T> {
     }
 }
 
-impl<T: Eq> IntoIterator for EqSet<T> {
+impl<T: Eq> IntoIterator for Set<T> {
     type Item = T;
     type IntoIter = std::vec::IntoIter<T>;
 
@@ -26,13 +29,16 @@ impl<T: Eq> IntoIterator for EqSet<T> {
     }
 }
 
-impl<T: Eq> AsRef<[T]> for EqSet<T> {
+impl<T: Eq> AsRef<[T]> for Set<T> {
     fn as_ref(&self) -> &[T] {
         &self.0
     }
 }
 
-impl<T: Eq> EqSet<T> {
+impl<T: Eq> Set<T> {
+    /// Insert a new element.
+    ///
+    /// Returns true if inserted, false if the element already exists in the set.
     pub fn insert(&mut self, s: T) -> bool {
         if !self.0.contains(&s) {
             self.0.push(s);
@@ -41,14 +47,15 @@ impl<T: Eq> EqSet<T> {
         false
     }
 
-    pub fn insert_all<I: Iterator<Item = T>>(&mut self, ts: I) {
-        ts.for_each(|t| {
+    /// Insert multiple new elements.
+    pub fn insert_all<I: IntoIterator<Item = T>>(&mut self, ts: I) {
+        ts.into_iter().for_each(|t| {
             self.insert(t);
         })
     }
 }
 
-impl<T: Eq + Serialize> Serialize for EqSet<T> {
+impl<T: Eq + Serialize> Serialize for Set<T> {
     fn serialize<S>(&self, s: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -57,7 +64,7 @@ impl<T: Eq + Serialize> Serialize for EqSet<T> {
     }
 }
 
-impl<'de, T: Eq + Deserialize<'de>> Deserialize<'de> for EqSet<T> {
+impl<'de, T: Eq + Deserialize<'de>> Deserialize<'de> for Set<T> {
     fn deserialize<D>(d: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,

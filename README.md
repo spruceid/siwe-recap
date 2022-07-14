@@ -8,42 +8,44 @@ Use this crate to create a delegation SIWE message, by replacing the resource li
 
 An example with default actions for the `credential` namespace, and no default actions and multiple targets with actions for the `kepler` namespace.
 ```rust
-let msg: Message = DelegationBuilder::new(Message {
-    domain: "example.com".parse().unwrap(),
-    address: Default::default(),
-    statement: None,
-    uri: "did:key:example".parse().unwrap(),
-    version: siwe::Version::V1,
-    chain_id: 1,
-    nonce: "mynonce1".into(),
-    issued_at: "2022-06-21T12:00:00.000Z".parse().unwrap(),
-    expiration_time: None,
-    not_before: None,
-    request_id: None,
-    resources: vec![],
-})
-.with_capability(Capability::new("credential".into(), vec!["present".into()]).unwrap())
-.with_capability(
-    Capability::new("kepler".into(), vec![])
-	.unwrap()
-	.with_actions(
-	    "kepler:ens:example.eth://default/kv".to_string(),
-	    ["list", "get", "metadata"].iter().map(|&s| s.into()),
-	)   
-	.with_actions(
-	    "kepler:ens:example.eth://default/kv/public".to_string(),
-	    ["list", "get", "metadata", "put", "delete"]
-		.iter()
-		.map(|&s| s.into()),
-	)   
-	.with_actions(
-	    "kepler:ens:example.eth://default/kv/dapp-space".to_string(),
-	    ["list", "get", "metadata", "put", "delete"]
-		.iter()
-		.map(|&s| s.into()),
-	),  
-)   
-.build()?;
+let credential: Namespace = "credential".parse().unwrap();
+let kepler: Namespace = "kepler".parse().unwrap();
+
+let msg = Builder::new()
+    .with_default_actions(&credential, vec!["present".into()])
+    .with_actions(
+	&kepler,
+	"kepler:ens:example.eth://default/kv".to_string(),
+	["list", "get", "metadata"].iter().map(|&s| s.into()),
+    )
+    .with_actions(
+	&kepler,
+	"kepler:ens:example.eth://default/kv/public".to_string(),
+	["list", "get", "metadata", "put", "delete"]
+	    .iter()
+	    .map(|&s| s.into()),
+    )
+    .with_actions(
+	&kepler,
+	"kepler:ens:example.eth://default/kv/dapp-space".to_string(),
+	["list", "get", "metadata", "put", "delete"]
+	    .iter()
+	    .map(|&s| s.into()),
+    )
+    .build(Message {
+	domain: "example.com".parse().unwrap(),
+	address: Default::default(),
+	statement: None,
+	uri: "did:key:example".parse().unwrap(),
+	version: siwe::Version::V1,
+	chain_id: 1,
+	nonce: "mynonce1".into(),
+	issued_at: "2022-06-21T12:00:00.000Z".parse().unwrap(),
+	expiration_time: None,
+	not_before: None,
+	request_id: None,
+	resources: vec![],
+    })?;
 ```
 
 Which produces this SIWE message:
@@ -67,21 +69,21 @@ Resources:
 
 A Message can be built without any capabilities, in which case a statement with only the "sign-in" message is generated:
 ```rust
-let msg: Message = DelegationBuilder::new(Message {
-    domain: "example.com".parse().unwrap(),
-    address: Default::default(),
-    statement: None,
-    uri: "did:key:example".parse().unwrap(),
-    version: siwe::Version::V1,
-    chain_id: 1,
-    nonce: "mynonce1".into(),
-    issued_at: "2022-06-21T12:00:00.000Z".parse().unwrap(),
-    expiration_time: None,
-    not_before: None,
-    request_id: None,
-    resources: vec![],
-})
-.build()?;
+let msg: Message = DelegationBuilder::new()
+    .build(Message {
+        domain: "example.com".parse().unwrap(),
+        address: Default::default(),
+        statement: None,
+        uri: "did:key:example".parse().unwrap(),
+        version: siwe::Version::V1,
+        chain_id: 1,
+        nonce: "mynonce1".into(),
+        issued_at: "2022-06-21T12:00:00.000Z".parse().unwrap(),
+        expiration_time: None,
+        not_before: None,
+        request_id: None,
+        resources: vec![],
+    }))?;
 ```
 
 Which produces this SIWE message:

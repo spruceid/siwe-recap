@@ -1,279 +1,44 @@
-mod eq_set;
-use eq_set::EqSet;
+mod builder;
+mod capability;
+mod error;
+mod namespace;
+mod set;
 
-use std::collections::{BTreeMap, HashMap};
+pub use builder::{extract_capabilities, verify_statement_matches_delegations, Builder};
+pub use capability::Capability;
+pub use error::Error;
+pub use namespace::Namespace;
+pub use set::Set;
 
-use iri_string::{spec::UriSpec, types::UriString, validate::absolute_iri};
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
-use siwe::Message;
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Capability {
-    namespace: String,
-    inner: CapabilityInner,
-}
-
-#[derive(Clone, Default, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CapabilityInner {
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    default_actions: Vec<String>,
-    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
-    targeted_actions: BTreeMap<String, EqSet<String>>,
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    extra_fields: HashMap<String, Value>,
-}
-
-pub struct DelegationBuilder {
-    message: Message,
-    capabilities: Vec<Capability>,
-}
-
-pub fn verify_statement_matches_delegations(message: &Message) -> Result<bool, Error> {
-    let capabilities = extract_capabilities(message)?;
-    let generated_statement = DelegationBuilder::capabilities_to_statement(&capabilities);
-    Ok(message.statement == Some(generated_statement))
-}
-
-pub fn extract_capabilities(message: &Message) -> Result<Vec<Capability>, Error> {
-    message
-        .resources
-        .iter()
-        .map(Capability::from_resource)
-        .collect()
-}
-
-impl Capability {
-    const RESOURCE_PREFIX: &'static str = "urn:capability:";
-
-    pub fn new(namespace: String, default_actions: Vec<String>) -> Result<Self, Error> {
-        absolute_iri::<UriSpec>(&format!("{}:", namespace))
-            .map_err(Error::InvalidNamespace)
-            .map(|()| Self {
-                namespace,
-                inner: CapabilityInner::new(default_actions),
-            })
-    }
-
-    pub fn with_field(mut self, key: String, value: Value) -> Self {
-        self.inner.extra_fields.insert(key, value);
-        self
-    }
-
-    pub fn with_fields(mut self, fields: HashMap<String, Value>) -> Self {
-        self.inner.extra_fields.extend(fields);
-        self
-    }
-
-    pub fn with_action(mut self, target: String, action: String) -> Self {
-        if let Some(actions) = self.inner.targeted_actions.get_mut(&target) {
-            actions.insert(action);
-        } else {
-            let mut actions = EqSet::default();
-            actions.insert(action);
-            self.inner.targeted_actions.insert(target, actions);
-        }
-        self
-    }
-
-    pub fn with_actions<I: Iterator<Item = String>>(mut self, target: String, actions: I) -> Self {
-        if let Some(current_actions) = self.inner.targeted_actions.get_mut(&target) {
-            current_actions.insert_all(actions);
-        } else {
-            self.inner
-                .targeted_actions
-                .insert(target, actions.collect());
-        }
-        self
-    }
-
-    fn to_resource(&self) -> Result<UriString, Error> {
-        self.inner
-            .encode()
-            .map(|encoded| format!("{}{}:{}", Self::RESOURCE_PREFIX, self.namespace, encoded))
-            .and_then(|s| s.parse().map_err(Error::UriParse))
-    }
-
-    fn from_resource(resource: &UriString) -> Result<Self, Error> {
-        resource
-            .as_str()
-            .strip_prefix(Self::RESOURCE_PREFIX)
-            .ok_or_else(|| Error::InvalidResourcePrefix(resource.to_string()))
-            .and_then(|rest| {
-                rest.split_once(':')
-                    .ok_or_else(|| Error::MissingBody(resource.to_string()))
-            })
-            .and_then(|(namespace, data)| {
-                CapabilityInner::decode(data).map(|inner| Capability {
-                    namespace: namespace.to_string(),
-                    inner,
-                })
-            })
-    }
-
-    fn to_statement_lines(&self) -> impl Iterator<Item = String> + '_ {
-        self.inner.to_statement(&self.namespace)
-    }
-}
-
-impl DelegationBuilder {
-    pub fn new(message: Message) -> DelegationBuilder {
-        DelegationBuilder {
-            message,
-            capabilities: vec![],
-        }
-    }
-
-    pub fn with_capability(mut self, capability: Capability) -> DelegationBuilder {
-        self.capabilities.push(capability);
-        self
-    }
-
-    pub fn build(mut self) -> Result<Message, Error> {
-        let statement = Self::capabilities_to_statement(&self.capabilities);
-        let resources = self
-            .capabilities
-            .iter()
-            .map(|cap| cap.to_resource())
-            .collect::<Result<Vec<UriString>, Error>>()?;
-
-        self.message.statement = Some(statement);
-        self.message.resources = resources;
-
-        Ok(self.message)
-    }
-
-    fn capabilities_to_statement(capabilities: &[Capability]) -> String {
-        let mut statement = String::from("By signing this message I am signing in with Ethereum");
-
-        if capabilities.is_empty() {
-            statement.push('.');
-            return statement;
-        }
-
-        statement.push_str(
-            " and authorizing the presented URI to perform the following actions on my behalf:",
-        );
-
-        let mut line_no = 0;
-        capabilities
-            .iter()
-            .flat_map(|cap| cap.to_statement_lines())
-            .for_each(|line| {
-                line_no += 1;
-                statement.push_str(&format!(" ({}) {}", line_no, line));
-            });
-
-        statement
-    }
-}
-
-impl CapabilityInner {
-    fn new(default_actions: Vec<String>) -> Self {
-        Self {
-            default_actions,
-            extra_fields: Default::default(),
-            targeted_actions: Default::default(),
-        }
-    }
-
-    fn encode(&self) -> Result<String, Error> {
-        serde_json::to_vec(self)
-            .map_err(Error::Ser)
-            .map(|bytes| base64::encode_config(bytes, base64::URL_SAFE_NO_PAD))
-    }
-
-    fn decode(encoded: &str) -> Result<Self, Error> {
-        base64::decode_config(encoded, base64::URL_SAFE_NO_PAD)
-            .map_err(Error::Base64Decode)
-            .and_then(|bytes| serde_json::from_slice(&bytes).map_err(Error::De))
-    }
-
-    fn to_statement<'l>(&'l self, namespace: &'l str) -> impl Iterator<Item = String> + 'l {
-        let default_actions = std::iter::once(self.default_actions.join(", "))
-            .filter(|actions| !actions.is_empty())
-            .map(move |actions| format!("{}: {} for any.", namespace, actions));
-
-        let action_sets: EqSet<&[String]> =
-            self.targeted_actions.values().map(AsRef::as_ref).collect();
-
-        let targeted_actions = action_sets.into_iter().map(move |action_set| {
-            let targets = self
-                .targeted_actions
-                .iter()
-                .filter(|(_, actions)| actions.as_ref() == action_set)
-                .map(|(target, _)| target.as_ref())
-                .collect::<Vec<&str>>();
-            format!(
-                "{}: {} for {}.",
-                namespace,
-                action_set.join(", "),
-                targets.join(", ")
-            )
-        });
-
-        default_actions.chain(targeted_actions)
-    }
-}
-
-#[derive(thiserror::Error, Debug)]
-pub enum Error {
-    #[error("the capability namespace must be a valid URI scheme: {0}")]
-    InvalidNamespace(iri_string::validate::Error),
-    #[error("failed to decode base64 capability resource: {0}")]
-    Base64Decode(base64::DecodeError),
-    #[error("failed to serialize capability to json: {0}")]
-    Ser(serde_json::Error),
-    #[error("failed to deserialize capability from json: {0}")]
-    De(serde_json::Error),
-    #[error(
-        "invalid resource prefix (expected prefix: {}, found: {0})",
-        Capability::RESOURCE_PREFIX
-    )]
-    InvalidResourcePrefix(String),
-    #[error("capability resource is missing a body: {0}")]
-    MissingBody(String),
-    #[error("unable to parse capability as a URI: {0}")]
-    UriParse(iri_string::validate::Error),
-}
+pub const RESOURCE_PREFIX: &str = "urn:capability:";
 
 #[cfg(test)]
 mod test {
     use super::*;
+    use siwe::Message;
 
-    const SIWE_NO_CAPS: &'static str =
-        "example.com wants you to sign in with your Ethereum account:
-0x0000000000000000000000000000000000000000
-
-By signing this message I am signing in with Ethereum.
-
-URI: did:key:example
-Version: 1
-Chain ID: 1
-Nonce: mynonce1
-Issued At: 2022-06-21T12:00:00.000Z";
+    const SIWE_NO_CAPS: &'static str = include_str!("../tests/siwe_with_no_caps.txt");
 
     const SIWE: &'static str = include_str!("../tests/siwe_with_caps.txt");
 
     #[test]
     fn no_caps() {
-        let msg = DelegationBuilder::new(Message {
-            domain: "example.com".parse().unwrap(),
-            address: Default::default(),
-            statement: None,
-            uri: "did:key:example".parse().unwrap(),
-            version: siwe::Version::V1,
-            chain_id: 1,
-            nonce: "mynonce1".into(),
-            issued_at: "2022-06-21T12:00:00.000Z".parse().unwrap(),
-            expiration_time: None,
-            not_before: None,
-            request_id: None,
-            resources: vec![],
-        })
-        .build()
-        .expect("failed to build SIWE delegation");
+        let msg = Builder::new()
+            .build(Message {
+                domain: "example.com".parse().unwrap(),
+                address: Default::default(),
+                statement: None,
+                uri: "did:key:example".parse().unwrap(),
+                version: siwe::Version::V1,
+                chain_id: 1,
+                nonce: "mynonce1".into(),
+                issued_at: "2022-06-21T12:00:00.000Z".parse().unwrap(),
+                expiration_time: None,
+                not_before: None,
+                request_id: None,
+                resources: vec![],
+            })
+            .expect("failed to build SIWE delegation");
 
         assert_eq!(
             SIWE_NO_CAPS,
@@ -284,43 +49,45 @@ Issued At: 2022-06-21T12:00:00.000Z";
 
     #[test]
     fn build_delegation() {
-        let msg = DelegationBuilder::new(Message {
-            domain: "example.com".parse().unwrap(),
-            address: Default::default(),
-            statement: None,
-            uri: "did:key:example".parse().unwrap(),
-            version: siwe::Version::V1,
-            chain_id: 1,
-            nonce: "mynonce1".into(),
-            issued_at: "2022-06-21T12:00:00.000Z".parse().unwrap(),
-            expiration_time: None,
-            not_before: None,
-            request_id: None,
-            resources: vec![],
-        })
-        .with_capability(Capability::new("credential".into(), vec!["present".into()]).unwrap())
-        .with_capability(
-            Capability::new("kepler".into(), vec![])
-                .unwrap()
-                .with_actions(
-                    "kepler:ens:example.eth://default/kv".to_string(),
-                    ["list", "get", "metadata"].iter().map(|&s| s.into()),
-                )
-                .with_actions(
-                    "kepler:ens:example.eth://default/kv/public".to_string(),
-                    ["list", "get", "metadata", "put", "delete"]
-                        .iter()
-                        .map(|&s| s.into()),
-                )
-                .with_actions(
-                    "kepler:ens:example.eth://default/kv/dapp-space".to_string(),
-                    ["list", "get", "metadata", "put", "delete"]
-                        .iter()
-                        .map(|&s| s.into()),
-                ),
-        )
-        .build()
-        .expect("failed to build SIWE delegation");
+        let credential: Namespace = "credential".parse().unwrap();
+        let kepler: Namespace = "kepler".parse().unwrap();
+
+        let msg = Builder::new()
+            .with_default_actions(&credential, vec!["present".into()])
+            .with_actions(
+                &kepler,
+                "kepler:ens:example.eth://default/kv".to_string(),
+                ["list", "get", "metadata"].iter().map(|&s| s.into()),
+            )
+            .with_actions(
+                &kepler,
+                "kepler:ens:example.eth://default/kv/public".to_string(),
+                ["list", "get", "metadata", "put", "delete"]
+                    .iter()
+                    .map(|&s| s.into()),
+            )
+            .with_actions(
+                &kepler,
+                "kepler:ens:example.eth://default/kv/dapp-space".to_string(),
+                ["list", "get", "metadata", "put", "delete"]
+                    .iter()
+                    .map(|&s| s.into()),
+            )
+            .build(Message {
+                domain: "example.com".parse().unwrap(),
+                address: Default::default(),
+                statement: None,
+                uri: "did:key:example".parse().unwrap(),
+                version: siwe::Version::V1,
+                chain_id: 1,
+                nonce: "mynonce1".into(),
+                issued_at: "2022-06-21T12:00:00.000Z".parse().unwrap(),
+                expiration_time: None,
+                not_before: None,
+                request_id: None,
+                resources: vec![],
+            })
+            .expect("failed to build SIWE delegation");
 
         assert_eq!(
             SIWE,
