@@ -56,11 +56,20 @@ mod test {
 
     #[test]
     fn invalid_namespace() {
-        "https://example.com/".parse::<Namespace>().unwrap_err();
+        for s in [
+            "https://example.com/",
+            "-my-namespace",
+            "my-namespace-",
+            "my--namespace",
+        ] {
+            s.parse::<Namespace>().unwrap_err();
+        }
     }
 
     #[test]
     fn valid_namespace() {
-        "my-namespace".parse::<Namespace>().unwrap();
+        for s in ["my-namespace", "My-nAmespac3-2"] {
+            s.parse::<Namespace>().unwrap();
+        }
     }
 }
