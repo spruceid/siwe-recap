@@ -1,6 +1,5 @@
 use crate::error::Error;
 
-use iri_string::{spec::UriSpec, validate::absolute_iri};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize, Eq, Ord, PartialEq, PartialOrd)]
@@ -29,8 +28,39 @@ impl std::str::FromStr for Namespace {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        absolute_iri::<UriSpec>(&format!("{}:", s))
-            .map(|()| Self(s.into()))
-            .map_err(Error::InvalidNamespace)
+        let mut previous_char_was_alphanum = false;
+        for c in s.chars() {
+            if c.is_ascii_alphanumeric() {
+                previous_char_was_alphanum = true;
+                continue;
+            }
+            if c == '-' && previous_char_was_alphanum {
+                previous_char_was_alphanum = false;
+                continue;
+            }
+            if c == '-' {
+                return Err(Error::InvalidNamespaceHyphens);
+            }
+            return Err(Error::InvalidNamespaceChars);
+        }
+        if !previous_char_was_alphanum {
+            return Err(Error::InvalidNamespaceHyphens);
+        }
+        Ok(Namespace(s.into()))
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn invalid_namespace() {
+        "https://example.com/".parse::<Namespace>().unwrap_err();
+    }
+
+    #[test]
+    fn valid_namespace() {
+        "my-namespace".parse::<Namespace>().unwrap();
     }
 }

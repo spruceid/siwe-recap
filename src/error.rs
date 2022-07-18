@@ -3,8 +3,10 @@ use crate::RESOURCE_PREFIX;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    #[error("the capability namespace must be a valid URI scheme: {0}")]
-    InvalidNamespace(iri_string::validate::Error),
+    #[error("namespace can only contain alphanumeric chars or '-'")]
+    InvalidNamespaceChars,
+    #[error("namespace cannot begin with, end with, or contain consecutive hyphens")]
+    InvalidNamespaceHyphens,
     #[error("failed to decode base64 capability resource: {0}")]
     Base64Decode(base64::DecodeError),
     #[error("failed to serialize capability to json: {0}")]
