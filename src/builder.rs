@@ -197,7 +197,7 @@ impl FromResource for (Namespace, Capability) {
             .strip_prefix(RESOURCE_PREFIX)
             .ok_or_else(|| Error::InvalidResourcePrefix(resource.to_string()))
             .and_then(|rest| {
-                rest.split_once(':')
+                rest.rsplit_once(':')
                     .ok_or_else(|| Error::MissingBody(resource.to_string()))
             })
             .and_then(|(namespace, data)| {
