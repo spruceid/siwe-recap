@@ -7,10 +7,10 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 /// should use the [`AsRef`] implementation to convert to a slice.
 pub struct Set<T: Eq>(Vec<T>);
 
-impl<T: Eq> FromIterator<T> for Set<T> {
+impl<T: Eq, S: Into<T>> FromIterator<S> for Set<T> {
     fn from_iter<I>(i: I) -> Self
     where
-        I: IntoIterator<Item = T>,
+        I: IntoIterator<Item = S>,
     {
         let iter = i.into_iter();
         let inner = Vec::with_capacity(iter.size_hint().0);
@@ -39,16 +39,21 @@ impl<T: Eq> Set<T> {
     /// Insert a new element.
     ///
     /// Returns true if inserted, false if the element already exists in the set.
-    pub fn insert(&mut self, s: T) -> bool {
-        if !self.0.contains(&s) {
-            self.0.push(s);
+    pub fn insert<S: Into<T>>(&mut self, s: S) -> bool {
+        let t = s.into();
+        if !self.0.contains(&t) {
+            self.0.push(t);
             return true;
         }
         false
     }
 
     /// Insert multiple new elements.
-    pub fn insert_all<I: IntoIterator<Item = T>>(&mut self, ts: I) {
+    pub fn insert_all<I, S>(&mut self, ts: I)
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<T>,
+    {
         ts.into_iter().for_each(|t| {
             self.insert(t);
         })

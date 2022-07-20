@@ -60,17 +60,20 @@ impl Builder {
     }
 
     /// Extend the set of default actions for a namespace.
-    pub fn with_default_action(mut self, namespace: &Namespace, action: String) -> Self {
+    pub fn with_default_action<S>(mut self, namespace: &Namespace, action: S) -> Self
+    where
+        S: Into<String>,
+    {
         self.namespace(namespace).default_actions.insert(action);
         self
     }
 
     /// Extend the set of default actions for a namespace.
-    pub fn with_default_actions<I: IntoIterator<Item = String>>(
-        mut self,
-        namespace: &Namespace,
-        actions: I,
-    ) -> Self {
+    pub fn with_default_actions<I, S>(mut self, namespace: &Namespace, actions: I) -> Self
+    where
+        S: Into<String>,
+        I: IntoIterator<Item = S>,
+    {
         self.namespace(namespace)
             .default_actions
             .insert_all(actions);
@@ -78,7 +81,12 @@ impl Builder {
     }
 
     /// Extend the set of actions for a target in a namespace.
-    pub fn with_action(mut self, namespace: &Namespace, target: String, action: String) -> Self {
+    pub fn with_action<T, S>(mut self, namespace: &Namespace, target: T, action: S) -> Self
+    where
+        T: Into<String>,
+        S: Into<String>,
+    {
+        let target = target.into();
         if let Some(actions) = self.namespace(namespace).targeted_actions.get_mut(&target) {
             actions.insert(action);
         } else {
@@ -90,12 +98,13 @@ impl Builder {
     }
 
     /// Extend the set of actions for a target in a namespace.
-    pub fn with_actions<I: IntoIterator<Item = String>>(
-        mut self,
-        namespace: &Namespace,
-        target: String,
-        actions: I,
-    ) -> Self {
+    pub fn with_actions<I, S, T>(mut self, namespace: &Namespace, target: T, actions: I) -> Self
+    where
+        T: Into<String>,
+        S: Into<String>,
+        I: IntoIterator<Item = S>,
+    {
+        let target = target.into();
         if let Some(current_actions) = self.namespace(namespace).targeted_actions.get_mut(&target) {
             current_actions.insert_all(actions);
         } else {

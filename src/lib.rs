@@ -53,25 +53,22 @@ mod test {
         let kepler: Namespace = "kepler".parse().unwrap();
 
         let msg = Builder::new()
-            .with_default_actions(&credential, vec!["present".into()])
+            .with_default_actions(&credential, ["present"])
+            .with_actions(&credential, "type:type1", ["present"])
             .with_actions(
                 &kepler,
-                "kepler:ens:example.eth://default/kv".to_string(),
-                ["list", "get", "metadata"].iter().map(|&s| s.into()),
+                "kepler:ens:example.eth://default/kv",
+                ["list", "get", "metadata"],
             )
             .with_actions(
                 &kepler,
-                "kepler:ens:example.eth://default/kv/public".to_string(),
-                ["list", "get", "metadata", "put", "delete"]
-                    .iter()
-                    .map(|&s| s.into()),
+                "kepler:ens:example.eth://default/kv/public",
+                ["list", "get", "metadata", "put", "delete"],
             )
             .with_actions(
                 &kepler,
-                "kepler:ens:example.eth://default/kv/dapp-space".to_string(),
-                ["list", "get", "metadata", "put", "delete"]
-                    .iter()
-                    .map(|&s| s.into()),
+                "kepler:ens:example.eth://default/kv/dapp-space",
+                ["list", "get", "metadata", "put", "delete"],
             )
             .build(Message {
                 domain: "example.com".parse().unwrap(),
