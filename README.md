@@ -57,7 +57,7 @@ Which produces this SIWE message:
 example.com wants you to sign in with your Ethereum account:
 0x0000000000000000000000000000000000000000
 
-By signing this message I am signing in with Ethereum and authorizing the presented URI to perform the following actions on my behalf: (1) credential: present for any. (2) credential: present for type:type1. (3) kepler: list, get, metadata for kepler:ens:example.eth://default/kv. (4) kepler: list, get, metadata, put, delete for kepler:ens:example.eth://default/kv/dapp-space, kepler:ens:example.eth://default/kv/public.
+I further authorize did:key:example to perform the following actions on my behalf: (1) credential: present for any. (2) credential: present for type:type1. (3) kepler: list, get, metadata for kepler:ens:example.eth://default/kv. (4) kepler: list, get, metadata, put, delete for kepler:ens:example.eth://default/kv/dapp-space, kepler:ens:example.eth://default/kv/public.
 
 URI: did:key:example
 Version: 1
@@ -95,7 +95,6 @@ Which produces this SIWE message:
 'example.com wants you to sign in with your Ethereum account:
 0x0000000000000000000000000000000000000000
 
-By signing this message I am signing in with Ethereum.
 
 URI: did:key:example
 Version: 1

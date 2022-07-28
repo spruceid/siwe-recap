@@ -1,7 +1,6 @@
 example.com wants you to sign in with your Ethereum account:
 0x0000000000000000000000000000000000000000
 
-By signing this message I am signing in with Ethereum.
 
 URI: did:key:example
 Version: 1
