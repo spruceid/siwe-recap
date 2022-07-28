@@ -4,7 +4,7 @@ mod error;
 mod namespace;
 mod set;
 
-pub use builder::{extract_capabilities, verify_statement_matches_delegations, Builder};
+pub use builder::{extract_capabilities, verify_statement, Builder};
 pub use capability::Capability;
 pub use error::Error;
 pub use namespace::Namespace;
@@ -94,11 +94,10 @@ mod test {
     }
 
     #[test]
-    fn verify_statement() {
+    fn verify() {
         let msg: Message = SIWE.parse().unwrap();
         assert!(
-            verify_statement_matches_delegations(&msg)
-                .expect("unable to parse resources as capabilities"),
+            verify_statement(&msg).expect("unable to parse resources as capabilities"),
             "statement did not match capabilities"
         );
 
@@ -108,9 +107,15 @@ mod test {
             .iter_mut()
             .for_each(|statement| statement.push_str(" I am the walrus!"));
         assert!(
-            !verify_statement_matches_delegations(&altered_msg_1)
-                .expect("unable to parse resources as capabilities"),
+            !verify_statement(&altered_msg_1).expect("unable to parse resources as capabilities"),
             "altered statement incorrectly matched capabilities"
+        );
+
+        let mut altered_msg_2 = msg.clone();
+        altered_msg_2.uri = "did:key:altered".parse().unwrap();
+        assert!(
+            !verify_statement(&altered_msg_2).expect("unable to parse resources as capabilities"),
+            "altered uri incorrectly matched capabilities"
         );
     }
 }

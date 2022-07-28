@@ -7,11 +7,14 @@ use iri_string::types::UriString;
 use serde_json::Value;
 use siwe::Message;
 
-/// Verifies that the encoded delegations match the human-readable description in the statement.
-pub fn verify_statement_matches_delegations(message: &Message) -> Result<bool, Error> {
+/// Verifies a capgrok statement.
+///
+/// Checks that the encoded delegations match the human-readable description in the statement, and
+/// that the URI displayed in the statement matches the uri field.
+pub fn verify_statement(message: &Message) -> Result<bool, Error> {
     let capabilities = extract_capabilities(message)?;
-    let generated_statement = Builder::capabilities_to_statement(&capabilities);
-    Ok(message.statement == Some(generated_statement))
+    let generated_statement = Builder::capabilities_to_statement(&capabilities, &message.uri);
+    Ok(message.statement == generated_statement)
 }
 
 /// Extract the encoded capabilities from a SIWE message.
@@ -130,14 +133,14 @@ impl Builder {
 
     /// Augment the SIWE message with encoded capabilities.
     pub fn build(&self, mut message: Message) -> Result<Message, Error> {
-        let statement = Self::capabilities_to_statement(&self.capabilities);
+        let statement = Self::capabilities_to_statement(&self.capabilities, &message.uri);
         let resources = self
             .capabilities
             .iter()
             .map(|cap| cap.to_resource())
             .collect::<Result<Vec<UriString>, Error>>()?;
 
-        message.statement = Some(statement);
+        message.statement = statement;
         message.resources = resources;
 
         Ok(message)
@@ -153,16 +156,17 @@ impl Builder {
         self.capabilities.get_mut(namespace).unwrap()
     }
 
-    fn capabilities_to_statement(capabilities: &BTreeMap<Namespace, Capability>) -> String {
-        let mut statement = String::from("By signing this message I am signing in with Ethereum");
-
+    fn capabilities_to_statement(
+        capabilities: &BTreeMap<Namespace, Capability>,
+        uri: &UriString,
+    ) -> Option<String> {
         if capabilities.is_empty() {
-            statement.push('.');
-            return statement;
+            return None;
         }
 
-        statement.push_str(
-            " and authorizing the presented URI to perform the following actions on my behalf:",
+        let mut statement = format!(
+            "I further authorize {} to perform the following actions on my behalf:",
+            uri
         );
 
         let mut line_no = 0;
@@ -176,7 +180,7 @@ impl Builder {
                 let _ = write!(statement, " ({}) {}", line_no, line);
             });
 
-        statement
+        Some(statement)
     }
 }
 
