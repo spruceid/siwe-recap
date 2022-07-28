@@ -13,8 +13,14 @@ use siwe::Message;
 /// that the URI displayed in the statement matches the uri field.
 pub fn verify_statement(message: &Message) -> Result<bool, Error> {
     let capabilities = extract_capabilities(message)?;
-    let generated_statement = Builder::capabilities_to_statement(&capabilities, &message.uri);
-    Ok(message.statement == generated_statement)
+    let generated_statement =
+        Builder::capabilities_to_statement(&capabilities, &message.uri, &None);
+    let verified = match (&message.statement, &generated_statement) {
+        (None, None) => true,
+        (Some(o), Some(g)) => o.ends_with(g),
+        _ => false,
+    };
+    Ok(verified)
 }
 
 /// Extract the encoded capabilities from a SIWE message.
@@ -133,7 +139,8 @@ impl Builder {
 
     /// Augment the SIWE message with encoded capabilities.
     pub fn build(&self, mut message: Message) -> Result<Message, Error> {
-        let statement = Self::capabilities_to_statement(&self.capabilities, &message.uri);
+        let statement =
+            Self::capabilities_to_statement(&self.capabilities, &message.uri, &message.statement);
         let resources = self
             .capabilities
             .iter()
@@ -159,9 +166,10 @@ impl Builder {
     fn capabilities_to_statement(
         capabilities: &BTreeMap<Namespace, Capability>,
         uri: &UriString,
+        original_statement: &Option<String>,
     ) -> Option<String> {
         if capabilities.is_empty() {
-            return None;
+            return original_statement.clone();
         }
 
         let mut statement = format!(
@@ -180,7 +188,11 @@ impl Builder {
                 let _ = write!(statement, " ({}) {}", line_no, line);
             });
 
-        Some(statement)
+        if let Some(o) = original_statement {
+            Some(format!("{} {}", o, statement))
+        } else {
+            Some(statement)
+        }
     }
 }
 

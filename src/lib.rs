@@ -17,9 +17,66 @@ mod test {
     use super::*;
     use siwe::Message;
 
+    const SIWE_WITH_STATEMENT_NO_CAPS: &'static str =
+        include_str!("../tests/siwe_with_statement_no_caps.txt");
+    const SIWE_WITH_STATEMENT: &'static str = include_str!("../tests/siwe_with_statement.txt");
     const SIWE_NO_CAPS: &'static str = include_str!("../tests/siwe_with_no_caps.txt");
-
     const SIWE: &'static str = include_str!("../tests/siwe_with_caps.txt");
+
+    #[test]
+    fn no_caps_statement_append() {
+        let msg = Builder::new()
+            .build(Message {
+                domain: "example.com".parse().unwrap(),
+                address: Default::default(),
+                statement: Some("Some custom statement.".into()),
+                uri: "did:key:example".parse().unwrap(),
+                version: siwe::Version::V1,
+                chain_id: 1,
+                nonce: "mynonce1".into(),
+                issued_at: "2022-06-21T12:00:00.000Z".parse().unwrap(),
+                expiration_time: None,
+                not_before: None,
+                request_id: None,
+                resources: vec![],
+            })
+            .expect("failed to build SIWE delegation");
+
+        assert_eq!(
+            SIWE_WITH_STATEMENT_NO_CAPS,
+            msg.to_string(),
+            "generated SIWE message did not match expectation"
+        );
+    }
+
+    #[test]
+    fn build_delegation_statement_append() {
+        let credential: Namespace = "credential".parse().unwrap();
+
+        let msg = Builder::new()
+            .with_default_actions(&credential, ["present"])
+            .build(Message {
+                domain: "example.com".parse().unwrap(),
+                address: Default::default(),
+                statement: Some("Some custom statement.".into()),
+                uri: "did:key:example".parse().unwrap(),
+                version: siwe::Version::V1,
+                chain_id: 1,
+                nonce: "mynonce1".into(),
+                issued_at: "2022-06-21T12:00:00.000Z".parse().unwrap(),
+                expiration_time: None,
+                not_before: None,
+                request_id: None,
+                resources: vec![],
+            })
+            .expect("failed to build SIWE delegation");
+
+        assert_eq!(
+            SIWE_WITH_STATEMENT,
+            msg.to_string(),
+            "generated SIWE message did not match expectation"
+        );
+    }
 
     #[test]
     fn no_caps() {
