@@ -9,4 +9,5 @@ Chain ID: 1
 Nonce: mynonce1
 Issued At: 2022-06-21T12:00:00.000Z
 Resources:
+- http://example.com
 - urn:capability:credential:eyJkZWZhdWx0QWN0aW9ucyI6WyJwcmVzZW50Il19

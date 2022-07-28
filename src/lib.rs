@@ -17,6 +17,7 @@ mod test {
     use super::*;
     use siwe::Message;
 
+    const SIWE_WITH_INTERLEAVED_RES: &'static str = include_str!("../tests/siwe_with_interleaved_resources.txt");
     const SIWE_WITH_STATEMENT_NO_CAPS: &'static str =
         include_str!("../tests/siwe_with_statement_no_caps.txt");
     const SIWE_WITH_STATEMENT: &'static str = include_str!("../tests/siwe_with_statement.txt");
@@ -67,7 +68,7 @@ mod test {
                 expiration_time: None,
                 not_before: None,
                 request_id: None,
-                resources: vec![],
+                resources: vec!["http://example.com".parse().unwrap()],
             })
             .expect("failed to build SIWE delegation");
 
@@ -173,6 +174,15 @@ mod test {
         assert!(
             !verify_statement(&altered_msg_2).expect("unable to parse resources as capabilities"),
             "altered uri incorrectly matched capabilities"
+        );
+    }
+
+    #[test]
+    fn verify_interleaved_resources() {
+        let msg: Message = SIWE_WITH_INTERLEAVED_RES.parse().unwrap();
+        assert!(
+            verify_statement(&msg).expect("unable to parse resources as capabilities"),
+            "statement did not match capabilities"
         );
     }
 }

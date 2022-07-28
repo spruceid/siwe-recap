@@ -28,6 +28,7 @@ pub fn extract_capabilities(message: &Message) -> Result<BTreeMap<Namespace, Cap
     message
         .resources
         .iter()
+        .filter(|res| res.as_str().starts_with(RESOURCE_PREFIX))
         .map(<(Namespace, Capability)>::from_resource)
         .collect()
 }
@@ -148,7 +149,7 @@ impl Builder {
             .collect::<Result<Vec<UriString>, Error>>()?;
 
         message.statement = statement;
-        message.resources = resources;
+        message.resources.extend(resources);
 
         Ok(message)
     }

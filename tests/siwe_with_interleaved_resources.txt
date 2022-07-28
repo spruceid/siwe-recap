@@ -1,0 +1,16 @@
+example.com wants you to sign in with your Ethereum account:
+0x0000000000000000000000000000000000000000
+
+I further authorize did:key:example to perform the following actions on my behalf: (1) credential: present for any. (2) kepler: list, get, metadata for any.
+
+URI: did:key:example
+Version: 1
+Chain ID: 1
+Nonce: mynonce1
+Issued At: 2022-06-21T12:00:00.000Z
+Resources:
+- http://example.com
+- urn:capability:credential:eyJkZWZhdWx0QWN0aW9ucyI6WyJwcmVzZW50Il19
+- ftp://example.com
+- urn:capability:kepler:eyJkZWZhdWx0QWN0aW9ucyI6WyJsaXN0IiwiZ2V0IiwibWV0YWRhdGEiXX0
+- ssh://git@github.com
