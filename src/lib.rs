@@ -17,7 +17,8 @@ mod test {
     use super::*;
     use siwe::Message;
 
-    const SIWE_WITH_INTERLEAVED_RES: &'static str = include_str!("../tests/siwe_with_interleaved_resources.txt");
+    const SIWE_WITH_INTERLEAVED_RES: &'static str =
+        include_str!("../tests/siwe_with_interleaved_resources.txt");
     const SIWE_WITH_STATEMENT_NO_CAPS: &'static str =
         include_str!("../tests/siwe_with_statement_no_caps.txt");
     const SIWE_WITH_STATEMENT: &'static str = include_str!("../tests/siwe_with_statement.txt");
