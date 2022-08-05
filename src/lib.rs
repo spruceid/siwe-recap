@@ -3,14 +3,34 @@ mod capability;
 mod error;
 mod namespace;
 mod set;
+mod translation;
 
-pub use builder::{extract_capabilities, verify_statement, Builder};
+pub use builder::Builder;
 pub use capability::Capability;
 pub use error::Error;
 pub use namespace::Namespace;
 pub use set::Set;
+pub use translation::{capabilities_to_statement, extract_capabilities};
 
+use siwe::Message;
+
+/// The prefix for a capgrok uri.
 pub const RESOURCE_PREFIX: &str = "urn:capability:";
+
+/// Verifies a capgrok statement.
+///
+/// Checks that the encoded delegations match the human-readable description in the statement, and
+/// that the URI displayed in the statement matches the uri field.
+pub fn verify_statement(message: &Message) -> Result<bool, Error> {
+    let capabilities = extract_capabilities(message)?;
+    let generated_statement = capabilities_to_statement(&capabilities, &message.uri);
+    let verified = match (&message.statement, &generated_statement) {
+        (None, None) => true,
+        (Some(o), Some(g)) => o.ends_with(g),
+        _ => false,
+    };
+    Ok(verified)
+}
 
 #[cfg(test)]
 mod test {
