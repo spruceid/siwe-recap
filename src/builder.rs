@@ -1,37 +1,12 @@
-use crate::{Capability, Error, Namespace, Set, RESOURCE_PREFIX};
+use crate::{
+    capabilities_to_statement, translation::ToResource, Capability, Error, Namespace, Set,
+};
 
 use std::collections::{BTreeMap, HashMap};
-use std::fmt::Write;
 
 use iri_string::types::UriString;
 use serde_json::Value;
 use siwe::Message;
-
-/// Verifies a capgrok statement.
-///
-/// Checks that the encoded delegations match the human-readable description in the statement, and
-/// that the URI displayed in the statement matches the uri field.
-pub fn verify_statement(message: &Message) -> Result<bool, Error> {
-    let capabilities = extract_capabilities(message)?;
-    let generated_statement =
-        Builder::capabilities_to_statement(&capabilities, &message.uri, &None);
-    let verified = match (&message.statement, &generated_statement) {
-        (None, None) => true,
-        (Some(o), Some(g)) => o.ends_with(g),
-        _ => false,
-    };
-    Ok(verified)
-}
-
-/// Extract the encoded capabilities from a SIWE message.
-pub fn extract_capabilities(message: &Message) -> Result<BTreeMap<Namespace, Capability>, Error> {
-    message
-        .resources
-        .iter()
-        .filter(|res| res.as_str().starts_with(RESOURCE_PREFIX))
-        .map(<(Namespace, Capability)>::from_resource)
-        .collect()
-}
 
 /// Augments a SIWE message with encoded capability delegations.
 #[derive(Default, Debug)]
@@ -140,18 +115,27 @@ impl Builder {
 
     /// Augment the SIWE message with encoded capabilities.
     pub fn build(&self, mut message: Message) -> Result<Message, Error> {
-        let statement =
-            Self::capabilities_to_statement(&self.capabilities, &message.uri, &message.statement);
+        let statement = self.statement(&message.uri);
         let resources = self
             .capabilities
             .iter()
             .map(|cap| cap.to_resource())
             .collect::<Result<Vec<UriString>, Error>>()?;
 
-        message.statement = statement;
+        message.statement = match (message.statement, statement) {
+            (s, None) => s,
+            (None, s) => s,
+            (Some(s), Some(t)) => Some(format!("{} {}", s, t)),
+        };
+
         message.resources.extend(resources);
 
         Ok(message)
+    }
+
+    /// Generate a CapGrok statement from capabilities and URI.
+    pub fn statement(&self, uri: &UriString) -> Option<String> {
+        capabilities_to_statement(&self.capabilities, uri)
     }
 
     fn namespace(&mut self, namespace: &Namespace) -> &mut Capability {
@@ -162,72 +146,5 @@ impl Builder {
 
         // Safety: it has just been inserted or already exists, so can be safely unwrapped.
         self.capabilities.get_mut(namespace).unwrap()
-    }
-
-    fn capabilities_to_statement(
-        capabilities: &BTreeMap<Namespace, Capability>,
-        uri: &UriString,
-        original_statement: &Option<String>,
-    ) -> Option<String> {
-        if capabilities.is_empty() {
-            return original_statement.clone();
-        }
-
-        let mut statement = format!(
-            "I further authorize {} to perform the following actions on my behalf:",
-            uri
-        );
-
-        let mut line_no = 0;
-        capabilities
-            .iter()
-            .flat_map(|(ns, cap)| cap.to_statement_lines(ns))
-            .for_each(|line| {
-                line_no += 1;
-                // Ignore the error as write! is infallible for String.
-                // See: https://rust-lang.github.io/rust-clippy/master/index.html#format_push_string
-                let _ = write!(statement, " ({}) {}", line_no, line);
-            });
-
-        if let Some(o) = original_statement {
-            Some(format!("{} {}", o, statement))
-        } else {
-            Some(statement)
-        }
-    }
-}
-
-trait ToResource {
-    fn to_resource(self) -> Result<UriString, Error>;
-}
-
-trait FromResource {
-    fn from_resource(resource: &UriString) -> Result<Self, Error>
-    where
-        Self: Sized;
-}
-
-impl ToResource for (&Namespace, &Capability) {
-    fn to_resource(self) -> Result<UriString, Error> {
-        self.1
-            .encode()
-            .map(|encoded| format!("{}{}:{}", RESOURCE_PREFIX, self.0, encoded))
-            .and_then(|s| s.parse().map_err(Error::UriParse))
-    }
-}
-
-impl FromResource for (Namespace, Capability) {
-    fn from_resource(resource: &UriString) -> Result<Self, Error> {
-        resource
-            .as_str()
-            .strip_prefix(RESOURCE_PREFIX)
-            .ok_or_else(|| Error::InvalidResourcePrefix(resource.to_string()))
-            .and_then(|rest| {
-                rest.rsplit_once(':')
-                    .ok_or_else(|| Error::MissingBody(resource.to_string()))
-            })
-            .and_then(|(namespace, data)| {
-                Capability::decode(data).and_then(|cap| Ok((namespace.parse()?, cap)))
-            })
     }
 }
