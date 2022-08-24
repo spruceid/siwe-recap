@@ -10,7 +10,6 @@ fn eq_set_is_empty<T: Eq>(s: &Set<T>) -> bool {
 
 /// Representation of a delegated Capability.
 #[derive(Clone, Default, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct Capability {
     /// The default actions that are allowed globally within this namespace.
     #[serde(default, skip_serializing_if = "eq_set_is_empty", rename = "def")]
