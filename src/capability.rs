@@ -12,19 +12,19 @@ fn eq_set_is_empty<T: Eq>(s: &Set<T>) -> bool {
 #[derive(Clone, Default, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Capability {
-    #[serde(default, skip_serializing_if = "eq_set_is_empty")]
     /// The default actions that are allowed globally within this namespace.
+    #[serde(default, skip_serializing_if = "eq_set_is_empty", rename = "def")]
     pub default_actions: Set<String>,
-    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     /// The actions that are allowed for the given target within this namespace.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty", rename = "tar")]
     pub targeted_actions: BTreeMap<String, Set<String>>,
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     /// Any additional information that is needed for the verifier to understand this Capability.
     ///
     /// This data is not encoded in the SIWE statement, so it must not contain any information that
     /// the verifier could use to extend the functionality defined by this capability. A good
     /// example of information you might encode here is the Cid of a previous delegation that this
     /// Capability is chaining from.
+    #[serde(default, skip_serializing_if = "HashMap::is_empty", rename = "ext")]
     pub extra_fields: HashMap<String, Value>,
 }
 
