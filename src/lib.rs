@@ -14,10 +14,10 @@ pub use translation::{capabilities_to_statement, extract_capabilities};
 
 use siwe::Message;
 
-/// The prefix for a capgrok uri.
-pub const RESOURCE_PREFIX: &str = "urn:capability:";
+/// The prefix for a ReCap uri.
+pub const RESOURCE_PREFIX: &str = "urn:recap:";
 
-/// Verifies a capgrok statement.
+/// Verifies a ReCap statement.
 ///
 /// Checks that the encoded delegations match the human-readable description in the statement, and
 /// that the URI displayed in the statement matches the uri field.

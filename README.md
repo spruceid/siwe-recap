@@ -1,4 +1,4 @@
-# Capgrok - capabilities for humans to read.
+# EIP-5573: SIWE ReCap
 
 Use this crate to build wallet-signable messages with capability delegations. The generated message contains two representations of the capabilities: an unambiguous machine-readable representation, and a human-readable description. Of the two representations, the latter is deterministically generated from the former.
 
@@ -15,10 +15,10 @@ An example with:
 - the capability to `list`, `get` and retrieve `metadata` from the kepler location `kepler:ens:example.eth://default/kv`
 - the capability to `list`, `get`, retrieve `metadata`, `put` and `delete` from the kepler locations `kepler:ens:example.eth://default/kv/public` and `kepler:ens:example.eth://default/kv/dapp-space`
 ```rust
-let credential: Namespace = "credential".parse().unwrap();
-let kepler: Namespace = "kepler".parse().unwrap();
+let credential: Namespace = "credential".parse()?;
+let kepler: Namespace = "kepler".parse()?;
 
-let msg = Builder::new()
+let msg: siwe::Message = Builder::new()
     .with_default_actions(&credential, ["present"])
     .with_actions(&credential, "type:type1", ["present"])
     .with_actions(
@@ -36,7 +36,7 @@ let msg = Builder::new()
         "kepler:ens:example.eth://default/kv/dapp-space",
         ["list", "get", "metadata", "put", "delete"],
     )
-    .build(Message {
+    .build(siwe::Message {
         domain: "example.com".parse().unwrap(),
         address: Default::default(),
         statement: None,
@@ -65,16 +65,16 @@ Chain ID: 1
 Nonce: mynonce1
 Issued At: 2022-06-21T12:00:00.000Z
 Resources:
-- urn:capability:credential:eyJkZWZhdWx0QWN0aW9ucyI6WyJwcmVzZW50Il0sInRhcmdldGVkQWN0aW9ucyI6eyJ0eXBlOnR5cGUxIjpbInByZXNlbnQiXX19
-- urn:capability:kepler:eyJ0YXJnZXRlZEFjdGlvbnMiOnsia2VwbGVyOmVuczpleGFtcGxlLmV0aDovL2RlZmF1bHQva3YiOlsibGlzdCIsImdldCIsIm1ldGFkYXRhIl0sImtlcGxlcjplbnM6ZXhhbXBsZS5ldGg6Ly9kZWZhdWx0L2t2L2RhcHAtc3BhY2UiOlsibGlzdCIsImdldCIsIm1ldGFkYXRhIiwicHV0IiwiZGVsZXRlIl0sImtlcGxlcjplbnM6ZXhhbXBsZS5ldGg6Ly9kZWZhdWx0L2t2L3B1YmxpYyI6WyJsaXN0IiwiZ2V0IiwibWV0YWRhdGEiLCJwdXQiLCJkZWxldGUiXX1
+- urn:recap:credential:eyJkZWYiOlsicHJlc2VudCJdLCJ0YXIiOnsidHlwZTp0eXBlMSI6WyJwcmVzZW50Il19fQ
+- urn:recap:kepler:eyJ0YXIiOnsia2VwbGVyOmVuczpleGFtcGxlLmV0aDovL2RlZmF1bHQva3YiOlsibGlzdCIsImdldCIsIm1ldGFkYXRhIl0sImtlcGxlcjplbnM6ZXhhbXBsZS5ldGg6Ly9kZWZhdWx0L2t2L2RhcHAtc3BhY2UiOlsibGlzdCIsImdldCIsIm1ldGFkYXRhIiwicHV0IiwiZGVsZXRlIl0sImtlcGxlcjplbnM6ZXhhbXBsZS5ldGg6Ly9kZWZhdWx0L2t2L3B1YmxpYyI6WyJsaXN0IiwiZ2V0IiwibWV0YWRhdGEiLCJwdXQiLCJkZWxldGUiXX19
 ```
 
 ### Sign-in only
 
 A Message can be built without any capabilities, in which case a statement with only the "sign-in" message is generated:
 ```rust
-let msg: Message = DelegationBuilder::new()
-    .build(Message {
+let msg: siwe::Message = DelegationBuilder::new()
+    .build(siwe::Message {
         domain: "example.com".parse().unwrap(),
         address: Default::default(),
         statement: None,
