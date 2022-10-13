@@ -16,7 +16,7 @@ pub fn extract_capabilities(message: &Message) -> Result<BTreeMap<Namespace, Cap
         .collect()
 }
 
-/// Generate a capgrok statement from capabilities and URI (delegee).
+/// Generate a ReCap statement from capabilities and URI (delegee).
 pub fn capabilities_to_statement(
     capabilities: &BTreeMap<Namespace, Capability>,
     delegee_uri: &UriString,

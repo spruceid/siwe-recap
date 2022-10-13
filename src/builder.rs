@@ -133,7 +133,7 @@ impl Builder {
         Ok(message)
     }
 
-    /// Generate a CapGrok statement from capabilities and URI.
+    /// Generate a ReCap statement from capabilities and URI.
     pub fn statement(&self, uri: &UriString) -> Option<String> {
         capabilities_to_statement(&self.capabilities, uri)
     }

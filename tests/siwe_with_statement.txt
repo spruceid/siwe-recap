@@ -10,4 +10,4 @@ Nonce: mynonce1
 Issued At: 2022-06-21T12:00:00.000Z
 Resources:
 - http://example.com
-- urn:capability:credential:eyJkZWYiOlsicHJlc2VudCJdfQ
+- urn:recap:credential:eyJkZWYiOlsicHJlc2VudCJdfQ
