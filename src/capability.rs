@@ -1,46 +1,74 @@
 use crate::{Error, Namespace, Set};
+use cid::Cid;
 use std::collections::{BTreeMap, HashMap};
+
+use crate::ability::{Ability, AbilityName, AbilityNamespace};
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use serde_with::{serde_as, DisplayFromStr};
+
+use iri_string::types::UriString;
 
 fn eq_set_is_empty<T: Eq>(s: &Set<T>) -> bool {
     s.as_ref().is_empty()
 }
 
 /// Representation of a delegated Capability.
+#[serde_as]
 #[derive(Clone, Default, Debug, Serialize, Deserialize)]
 pub struct Capability {
-    /// The default actions that are allowed globally within this namespace.
-    #[serde(default, skip_serializing_if = "eq_set_is_empty", rename = "def")]
-    pub default_actions: Set<String>,
+    // a Vec allows for maintaining the ordering when de/serialized as a map
     /// The actions that are allowed for the given target within this namespace.
-    #[serde(default, skip_serializing_if = "BTreeMap::is_empty", rename = "tar")]
-    pub targeted_actions: BTreeMap<String, Set<String>>,
-    /// Any additional information that is needed for the verifier to understand this Capability.
-    ///
-    /// This data is not encoded in the SIWE statement, so it must not contain any information that
-    /// the verifier could use to extend the functionality defined by this capability. A good
-    /// example of information you might encode here is the Cid of a previous delegation that this
-    /// Capability is chaining from.
-    #[serde(default, skip_serializing_if = "HashMap::is_empty", rename = "ext")]
-    pub extra_fields: HashMap<String, Value>,
+    #[serde(rename = "att")]
+    #[serde_as(as = "BTreeMap<DisplayFromStr, BTreeMap<_, Vec<_>>>")]
+    attenuations: Vec<(UriString, Vec<(Ability, Vec<Value>)>)>,
+
+    /// Cids of parent delegations which these capabilities are attenuated from
+    #[serde(rename = "prf")]
+    #[serde_as(as = "Vec<DisplayFromStr>")]
+    proof: Vec<Cid>,
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum CanError<T, A> {
+    #[error("Invalid Target: {0}")]
+    InvalidTarget(T),
+    #[error("Invalid Action: {0}")]
+    InvalidAction(A),
 }
 
 impl Capability {
     /// Check if a particular action is allowed for the specified target, or is allowed globally.
-    pub fn can(&self, target: &str, action: &str) -> bool {
-        self.can_default(action)
-            || self
-                .targeted_actions
-                .get(target)
-                .map(|actions| actions.as_ref().contains_alike(action))
-                .unwrap_or(false)
+    pub fn can<'l, T, A>(
+        &'l self,
+        target: T,
+        action: A,
+    ) -> Result<Option<&'l [Value]>, CanError<T::Error, A::Error>>
+    where
+        T: TryInto<UriString>,
+        A: TryInto<Ability>,
+    {
+        Ok(self.can_do(
+            &target.try_into().map_err(CanError::InvalidTarget)?,
+            &action.try_into().map_err(CanError::InvalidAction)?,
+        ))
     }
 
-    /// Check if a particular actions is allowed globally.
-    pub fn can_default(&self, action: &str) -> bool {
-        self.default_actions.as_ref().contains_alike(action)
+    pub fn can_do<'l>(&'l self, target: &UriString, action: &Ability) -> Option<&'l [Value]> {
+        self.attenuations.iter().find_map(|(r, actions)| {
+            if r == target {
+                actions.iter().find_map(|(a, nb)| {
+                    if a == action {
+                        Some(nb.as_slice())
+                    } else {
+                        None
+                    }
+                })
+            } else {
+                None
+            }
+        })
     }
 
     pub(crate) fn encode(&self) -> Result<String, Error> {
@@ -55,42 +83,43 @@ impl Capability {
             .and_then(|bytes| serde_json::from_slice(&bytes).map_err(Error::De))
     }
 
-    pub(crate) fn to_statement_lines<'l>(
+    fn to_line_groups<'l>(
         &'l self,
-        namespace: &'l Namespace,
-    ) -> impl Iterator<Item = String> + 'l {
-        let default_actions = std::iter::once(self.default_actions.as_ref().join(", "))
-            .filter(|actions| !actions.is_empty())
-            .map(move |actions| format!("{}: {} for any.", namespace, actions));
-
-        let action_sets: Set<&[String]> =
-            self.targeted_actions.values().map(AsRef::as_ref).collect();
-
-        let targeted_actions = action_sets.into_iter().map(move |action_set| {
-            let targets = self
-                .targeted_actions
-                .iter()
-                .filter(|(_, actions)| actions.as_ref() == action_set)
-                .map(|(target, _)| target.as_ref())
-                .collect::<Vec<&str>>();
-            format!(
-                "{}: {} for {}.",
-                namespace,
-                action_set.join(", "),
-                targets.join(", ")
-            )
-        });
-
-        default_actions.chain(targeted_actions)
+    ) -> impl Iterator<Item = (&'l UriString, &'l AbilityNamespace, Vec<&'l AbilityName>)> + 'l
+    {
+        self.attenuations
+            .iter()
+            .map(|(resource, abilities)| {
+                // group abilities by namespace
+                abilities
+                    .iter()
+                    .fold(
+                        HashMap::<&AbilityNamespace, Vec<&AbilityName>>::new(),
+                        |mut map, (ability, _)| {
+                            map.entry(ability.namespace())
+                                .or_default()
+                                .push(ability.name());
+                            map
+                        },
+                    )
+                    .into_iter()
+                    .map(move |(namespace, names)| (resource, namespace, names))
+            })
+            .flatten()
     }
-}
 
-trait Contains<T: ?Sized> {
-    fn contains_alike(&self, other: &T) -> bool;
-}
-
-impl Contains<str> for [String] {
-    fn contains_alike(&self, other: &str) -> bool {
-        self.iter().any(|i| i == other)
+    pub(crate) fn to_statement_lines<'l>(&'l self) -> impl Iterator<Item = String> + 'l {
+        self.to_line_groups().map(|(resource, namespace, names)| {
+            format!(
+                "\"{}\": {} for \"{}\".",
+                namespace,
+                names
+                    .iter()
+                    .map(|an| format!("\"{}\"", an))
+                    .collect::<Vec<String>>()
+                    .join(", "),
+                resource
+            )
+        })
     }
 }
