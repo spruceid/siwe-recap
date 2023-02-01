@@ -83,13 +83,9 @@ impl Capability {
     pub fn merge(mut self, other: Self) -> Self {
         self.proof.extend(other.proof);
         for (uri, abs) in other.attenuations.into_iter() {
+            let res_entry = self.attenuations.entry(uri).or_default();
             for (ab, nbs) in abs.into_iter() {
-                self.attenuations
-                    .entry(uri)
-                    .or_default()
-                    .entry(ab)
-                    .or_default()
-                    .extend(nbs);
+                res_entry.entry(ab).or_default().extend(nbs);
             }
         }
         self

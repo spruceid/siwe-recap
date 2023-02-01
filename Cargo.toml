@@ -14,6 +14,6 @@ iri-string = "0.6"
 siwe = "0.5"
 serde_json = { version = "1", features = ["preserve_order"] }
 serde = { version = "1", features = ["derive"] }
-serde_with = "2"
+serde_with = { version = "2", features = ["indexmap"] }
 thiserror = "1"
 cid = "0.10"
