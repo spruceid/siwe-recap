@@ -1,16 +1,11 @@
 mod ability;
-mod builder;
 mod capability;
 mod error;
-mod namespace;
-mod set;
 mod translation;
 
-pub use builder::Builder;
-pub use capability::Capability;
+pub use ability::{Ability, AbilityName, AbilityNamespace};
+pub use capability::{Capability, ConvertError};
 pub use error::Error;
-pub use namespace::Namespace;
-pub use set::Set;
 pub use translation::{capabilities_to_statement, extract_capabilities};
 
 use siwe::Message;
@@ -24,10 +19,10 @@ pub const RESOURCE_PREFIX: &str = "urn:recap:";
 /// that the URI displayed in the statement matches the uri field.
 pub fn verify_statement(message: &Message) -> Result<bool, Error> {
     let capabilities = extract_capabilities(message)?;
-    let generated_statement = capabilities_to_statement(&capabilities, &message.uri);
+    let generated_statement = capabilities.map(|c| capabilities_to_statement(&c, &message.uri));
     let verified = match (&message.statement, &generated_statement) {
         (None, None) => true,
-        (Some(o), Some(g)) => o.ends_with(g),
+        (Some(o), Some(a)) => o.ends_with(a),
         _ => false,
     };
     Ok(verified)
