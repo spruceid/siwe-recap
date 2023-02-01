@@ -55,6 +55,7 @@ impl Capability {
         ))
     }
 
+    /// Check if a particular action is allowed for the specified target, or is allowed globally, without type conversion.
     pub fn can_do<'l>(
         &'l self,
         target: &UriString,
@@ -78,6 +79,7 @@ impl Capability {
             .and_then(|bytes| serde_json::from_slice(&bytes).map_err(Error::De))
     }
 
+    /// Merge this Capabilities set with another
     pub fn merge(mut self, other: Self) -> Self {
         self.proof.extend(other.proof);
         for (uri, abs) in other.attenuations.into_iter() {
@@ -93,6 +95,7 @@ impl Capability {
         self
     }
 
+    /// Add an allowed action for the given target, with a set of note-benes
     pub fn with_action<T, A>(
         mut self,
         target: T,
@@ -112,12 +115,14 @@ impl Capability {
         Ok(self)
     }
 
+    /// Read the set of abilities granted in this capabilities set
     pub fn abilities(
         &self,
     ) -> impl Iterator<Item = (&UriString, &IndexMap<Ability, Vec<IndexMap<String, Value>>>)> {
         self.attenuations.iter()
     }
 
+    /// Read the set of abilities granted for a given target in this capabilities set
     pub fn abilities_for<T>(
         &self,
         target: T,
@@ -128,15 +133,18 @@ impl Capability {
         Ok(self.attenuations.get(&target.try_into()?).map(|m| m.iter()))
     }
 
+    /// Read the set of proofs which support the granted capabilities
     pub fn proof(&self) -> impl Iterator<Item = &Cid> {
         self.proof.iter()
     }
 
+    /// Add a supporting proof CID
     pub fn with_proof(mut self, proof: &Cid) -> Self {
         self.proof.insert(*proof);
         self
     }
 
+    /// Add a set of supporting proofs
     pub fn with_proofs<'l>(mut self, proofs: impl IntoIterator<Item = &'l Cid>) -> Self {
         self.proof.extend(proofs);
         self
@@ -182,6 +190,7 @@ impl Capability {
         })
     }
 
+    /// Apply this capabilities set to a SIWE message by writing to it's statement and resource list
     pub fn build_message(&self, mut message: Message) -> Result<Message, Error> {
         let statement = capabilities_to_statement(self, &message.uri);
         let encoded = self.to_resource()?;
