@@ -1,4 +1,3 @@
-use crate::Namespace;
 use crate::RESOURCE_PREFIX;
 
 #[derive(thiserror::Error, Debug)]
@@ -18,8 +17,6 @@ pub enum Error {
         RESOURCE_PREFIX
     )]
     InvalidResourcePrefix(String),
-    #[error("duplicated resource namespace: {0}")]
-    DuplicateNamespace(Namespace),
     #[error("capability resource is missing a body: {0}")]
     MissingBody(String),
     #[error("unable to parse capability as a URI: {0}")]
