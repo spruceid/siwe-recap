@@ -9,9 +9,10 @@ repository = "https://github.com/spruceid/siwe-recap/"
 
 [dependencies]
 base64 = "0.12"
+indexmap = "=1.8"
 iri-string = "0.6"
 siwe = "0.5"
-serde_json = "1"
+serde_json = { version = "1", features = ["preserve_order"] }
 serde_with = "2"
 thiserror = "1"
 cid = "0.10"

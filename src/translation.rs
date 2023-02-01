@@ -1,7 +1,6 @@
 use crate::{Capability, Error, Namespace, RESOURCE_PREFIX};
 
 use std::collections::BTreeMap;
-use std::fmt::Write;
 
 use iri_string::types::UriString;
 use siwe::Message;
@@ -17,31 +16,22 @@ pub fn extract_capabilities(message: &Message) -> Result<BTreeMap<Namespace, Cap
 }
 
 /// Generate a ReCap statement from capabilities and URI (delegee).
-pub fn capabilities_to_statement(
-    capabilities: &BTreeMap<Namespace, Capability>,
+pub fn capabilities_to_statement<'l>(
+    capabilities: impl Iterator<Item = &'l Capability>,
     delegee_uri: &UriString,
-) -> Option<String> {
-    if capabilities.is_empty() {
-        return None;
-    }
-
-    let mut statement = format!(
-        "I further authorize {} to perform the following actions on my behalf:",
-        delegee_uri
-    );
-
-    let mut line_no = 0;
-    capabilities
-        .iter()
-        .flat_map(|(ns, cap)| cap.to_statement_lines(ns))
-        .for_each(|line| {
-            line_no += 1;
-            // Ignore the error as write! is infallible for String.
-            // See: https://rust-lang.github.io/rust-clippy/master/index.html#format_push_string
-            let _ = write!(statement, " ({}) {}", line_no, line);
-        });
-
-    Some(statement)
+) -> String {
+    [
+        "I further authorize ".to_string(),
+        delegee_uri.to_string(),
+        " to perform the following actions on my behalf:".to_string(),
+        capabilities
+            .map(|c| c.to_statement_lines())
+            .flatten()
+            .enumerate()
+            .map(|(n, line)| [format!(" ({}) ", n), line].concat())
+            .collect(),
+    ]
+    .concat()
 }
 
 pub trait ToResource {
