@@ -42,6 +42,18 @@ impl Display for Ability {
     }
 }
 
+impl AsRef<str> for AbilityNamespace {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl AsRef<str> for AbilityName {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
 #[derive(thiserror::Error, Debug)]
 pub enum AbilityParseError {
     #[error("Invalid Characters: {0}")]
