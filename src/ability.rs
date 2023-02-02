@@ -5,10 +5,10 @@ use std::{
     str::FromStr,
 };
 
-#[derive(Debug, Eq, Hash, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Serialize, Deserialize)]
 pub struct AbilityNamespace(String);
 
-#[derive(Debug, Eq, Hash, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Serialize, Deserialize)]
 pub struct AbilityName(String);
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, SerializeDisplay, DeserializeFromStr)]
@@ -60,7 +60,7 @@ pub enum AbilityParseError {
     InvalidCharacter(String),
 }
 
-const ALLOWED_CHARS: &'static str = "-_.+*";
+const ALLOWED_CHARS: &str = "-_.+*";
 
 fn is_allowed(c: char) -> bool {
     !c.is_alphanumeric() && !ALLOWED_CHARS.contains(c)
@@ -130,18 +130,6 @@ impl TryFrom<&str> for Ability {
     type Error = <Self as FromStr>::Err;
     fn try_from(s: &str) -> Result<Self, Self::Error> {
         s.parse()
-    }
-}
-
-impl PartialEq<AbilityNamespace> for AbilityNamespace {
-    fn eq(&self, other: &Self) -> bool {
-        self.0.to_lowercase() == other.0.to_lowercase()
-    }
-}
-
-impl PartialEq<AbilityName> for AbilityName {
-    fn eq(&self, other: &Self) -> bool {
-        self.0.to_lowercase() == other.0.to_lowercase()
     }
 }
 

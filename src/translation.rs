@@ -52,6 +52,6 @@ impl FromResource for Capability {
             .as_str()
             .strip_prefix(RESOURCE_PREFIX)
             .ok_or_else(|| Error::InvalidResourcePrefix(resource.to_string()))
-            .and_then(|data| Capability::decode(data))
+            .and_then(Capability::decode)
     }
 }

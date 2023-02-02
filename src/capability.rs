@@ -37,12 +37,12 @@ pub enum ConvertError<T, A> {
 
 impl Capability {
     /// Check if a particular action is allowed for the specified target, or is allowed globally.
-    pub fn can<'l, T, A>(
-        &'l self,
+    pub fn can<T, A>(
+        &self,
         target: T,
         action: A,
     ) -> Result<
-        Option<impl Iterator<Item = &'l IndexMap<String, Value>>>,
+        Option<impl Iterator<Item = &IndexMap<String, Value>>>,
         ConvertError<T::Error, A::Error>,
     >
     where
@@ -146,32 +146,28 @@ impl Capability {
         self
     }
 
-    fn to_line_groups<'l>(
-        &'l self,
-    ) -> impl Iterator<Item = (&'l UriString, &'l AbilityNamespace, Vec<&'l AbilityName>)> + 'l
-    {
-        self.attenuations
-            .iter()
-            .map(|(resource, abilities)| {
-                // group abilities by namespace
-                abilities
-                    .iter()
-                    .fold(
-                        IndexMap::<&AbilityNamespace, Vec<&AbilityName>>::new(),
-                        |mut map, (ability, _)| {
-                            map.entry(ability.namespace())
-                                .or_default()
-                                .push(ability.name());
-                            map
-                        },
-                    )
-                    .into_iter()
-                    .map(move |(namespace, names)| (resource, namespace, names))
-            })
-            .flatten()
+    fn to_line_groups(
+        &self,
+    ) -> impl Iterator<Item = (&UriString, &AbilityNamespace, Vec<&AbilityName>)> {
+        self.attenuations.iter().flat_map(|(resource, abilities)| {
+            // group abilities by namespace
+            abilities
+                .iter()
+                .fold(
+                    IndexMap::<&AbilityNamespace, Vec<&AbilityName>>::new(),
+                    |mut map, (ability, _)| {
+                        map.entry(ability.namespace())
+                            .or_default()
+                            .push(ability.name());
+                        map
+                    },
+                )
+                .into_iter()
+                .map(move |(namespace, names)| (resource, namespace, names))
+        })
     }
 
-    pub(crate) fn to_statement_lines<'l>(&'l self) -> impl Iterator<Item = String> + 'l {
+    pub(crate) fn to_statement_lines(&self) -> impl Iterator<Item = String> + '_ {
         self.to_line_groups().map(|(resource, namespace, names)| {
             format!(
                 "\"{}\": {} for \"{}\".",
