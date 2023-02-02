@@ -174,7 +174,7 @@ impl Capability {
                 namespace,
                 names
                     .iter()
-                    .map(|an| format!("\"{}\"", an))
+                    .map(|an| format!("\"{an}\""))
                     .collect::<Vec<String>>()
                     .join(", "),
                 resource

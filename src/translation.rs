@@ -22,7 +22,7 @@ pub fn capabilities_to_statement(capabilities: &Capability, delegee_uri: &UriStr
         capabilities
             .to_statement_lines()
             .enumerate()
-            .map(|(n, line)| [format!(" ({}) ", n), line].concat())
+            .map(|(n, line)| format!(" ({n}) {line}"))
             .collect(),
     ]
     .concat()
@@ -41,7 +41,7 @@ trait FromResource {
 impl ToResource for &Capability {
     fn to_resource(self) -> Result<UriString, Error> {
         self.encode()
-            .map(|encoded| format!("{}:{}", RESOURCE_PREFIX, encoded))
+            .map(|encoded| format!("{RESOURCE_PREFIX}:{encoded}"))
             .and_then(|s| s.parse().map_err(Error::UriParse))
     }
 }
