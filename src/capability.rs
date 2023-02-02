@@ -202,7 +202,7 @@ mod test {
 
     #[test]
     fn deser() {
-        let ser = r#"{"att":{"http://example.com/public/photos/":{"crud/delete":[]},"mailto:username@example.com":{"msg/send":[{"to":"someone@email.com"},{"to":"joe@email.com"}]"msg/receive":[{"max_count":5,"templates":["newsletter","marketing"]}]}},"prf":["zM5K3WPEexRZN9x7ikg5LoijNjU2ytFTGJ6eeruGiN3Q9xkfGpMVei9cz5jMZAFUsmxXi9k"]}"#;
+        let ser = r#"{"att":{"http://example.com/public/photos/":{"crud/delete":[]},"mailto:username@example.com":{"msg/send":[{"to":"someone@email.com"},{"to":"joe@email.com"}],"msg/receive":[{"max_count":5,"templates":["newsletter","marketing"]}]}},"prf":["bafysameboaza4mnsng7t3djdbilbrnliv6ikxh45zsph7kpettjfbp4ad2g2uu2znujlf2afphw25d4y35pq"]}"#;
         let cap: Capability = serde_json::from_str(ser).unwrap();
         let reser = serde_json::to_string(&cap).unwrap();
         assert_eq!(ser, reser);

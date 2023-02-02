@@ -43,8 +43,8 @@ mod test {
 
     #[test]
     fn no_caps_statement_append() {
-        let msg = Builder::new()
-            .build(Message {
+        let msg = Capability::default()
+            .build_message(Message {
                 domain: "example.com".parse().unwrap(),
                 address: Default::default(),
                 statement: Some("Some custom statement.".into()),
@@ -69,11 +69,10 @@ mod test {
 
     #[test]
     fn build_delegation_statement_append() {
-        let credential: Namespace = "credential".parse().unwrap();
-
-        let msg = Builder::new()
-            .with_default_actions(&credential, ["present"])
-            .build(Message {
+        let msg = Capability::default()
+            .with_action("credential", "credential/present", [])
+            .unwrap()
+            .build_message(Message {
                 domain: "example.com".parse().unwrap(),
                 address: Default::default(),
                 statement: Some("Some custom statement.".into()),
@@ -98,8 +97,8 @@ mod test {
 
     #[test]
     fn no_caps() {
-        let msg = Builder::new()
-            .build(Message {
+        let msg = Capability::default()
+            .build_message(Message {
                 domain: "example.com".parse().unwrap(),
                 address: Default::default(),
                 statement: None,
@@ -124,28 +123,64 @@ mod test {
 
     #[test]
     fn build_delegation() {
-        let credential: Namespace = "credential".parse().unwrap();
-        let kepler: Namespace = "kepler".parse().unwrap();
-
-        let msg = Builder::new()
-            .with_default_actions(&credential, ["present"])
-            .with_actions(&credential, "type:type1", ["present"])
-            .with_actions(
-                &kepler,
-                "kepler:ens:example.eth://default/kv",
-                ["list", "get", "metadata"],
-            )
-            .with_actions(
-                &kepler,
+        let msg = Capability::default()
+            .with_action("urn:credential:type:type1", "credential/present", [])
+            .unwrap()
+            .with_action("kepler:ens:example.eth://default/kv", "kv/list", [])
+            .unwrap()
+            .with_action("kepler:ens:example.eth://default/kv", "kv/get", [])
+            .unwrap()
+            .with_action("kepler:ens:example.eth://default/kv", "kv/metadata", [])
+            .unwrap()
+            .with_action("kepler:ens:example.eth://default/kv/public", "kv/list", [])
+            .unwrap()
+            .with_action("kepler:ens:example.eth://default/kv/public", "kv/get", [])
+            .unwrap()
+            .with_action(
                 "kepler:ens:example.eth://default/kv/public",
-                ["list", "get", "metadata", "put", "delete"],
+                "kv/metadata",
+                [],
             )
-            .with_actions(
-                &kepler,
+            .unwrap()
+            .with_action("kepler:ens:example.eth://default/kv/public", "kv/put", [])
+            .unwrap()
+            .with_action(
+                "kepler:ens:example.eth://default/kv/public",
+                "kv/delete",
+                [],
+            )
+            .unwrap()
+            .with_action(
                 "kepler:ens:example.eth://default/kv/dapp-space",
-                ["list", "get", "metadata", "put", "delete"],
+                "kv/list",
+                [],
             )
-            .build(Message {
+            .unwrap()
+            .with_action(
+                "kepler:ens:example.eth://default/kv/dapp-space",
+                "kv/get",
+                [],
+            )
+            .unwrap()
+            .with_action(
+                "kepler:ens:example.eth://default/kv/dapp-space",
+                "kv/metadata",
+                [],
+            )
+            .unwrap()
+            .with_action(
+                "kepler:ens:example.eth://default/kv/dapp-space",
+                "kv/put",
+                [],
+            )
+            .unwrap()
+            .with_action(
+                "kepler:ens:example.eth://default/kv/dapp-space",
+                "kv/delete",
+                [],
+            )
+            .unwrap()
+            .build_message(Message {
                 domain: "example.com".parse().unwrap(),
                 address: Default::default(),
                 statement: None,

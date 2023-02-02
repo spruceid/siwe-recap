@@ -60,12 +60,16 @@ pub enum AbilityParseError {
     InvalidCharacter(String),
 }
 
+const ALLOWED_CHARS: &'static str = "-_.+*";
+
+fn is_allowed(c: char) -> bool {
+    !c.is_alphanumeric() && !ALLOWED_CHARS.contains(c)
+}
+
 impl FromStr for AbilityNamespace {
     type Err = AbilityParseError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s.contains(|c: char| {
-            !c.is_alphanumeric() || c != '-' || c != '.' || c != '_' || c != '+' || c != '*'
-        }) {
+        if s.contains(is_allowed) {
             Err(AbilityParseError::InvalidCharacter(s.into()))
         } else {
             Ok(Self(s.into()))
@@ -76,9 +80,7 @@ impl FromStr for AbilityNamespace {
 impl FromStr for AbilityName {
     type Err = AbilityParseError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s.contains(|c: char| {
-            !c.is_alphanumeric() || c != '-' || c != '.' || c != '_' || c != '+' || c != '*'
-        }) {
+        if s.contains(is_allowed) {
             Err(AbilityParseError::InvalidCharacter(s.into()))
         } else {
             Ok(Self(s.into()))
@@ -151,9 +153,9 @@ mod test {
     fn invalid_namespace() {
         for s in [
             "https://example.com/",
-            "-my-namespace",
-            "my-namespace-",
-            "my--namespace",
+            "-my-namespace:",
+            "my-namespace-/",
+            "my--namespace[]",
             "not a valid namespace",
         ] {
             s.parse::<AbilityNamespace>().unwrap_err();
@@ -164,6 +166,30 @@ mod test {
     fn valid_namespace() {
         for s in ["my-namespace", "My-nAmespac3-2"] {
             s.parse::<AbilityNamespace>().unwrap();
+        }
+    }
+
+    #[test]
+    fn valid_abilities() {
+        for s in [
+            "credential/present",
+            "kv/list",
+            "some-ns/some-name",
+            "msg/*",
+        ] {
+            s.parse::<Ability>().unwrap();
+        }
+    }
+
+    #[test]
+    fn invalid_abilities() {
+        for s in [
+            "credential ns/present",
+            "kv-list",
+            "some:ns/some-name",
+            "msg/wrong/str",
+        ] {
+            s.parse::<Ability>().unwrap_err();
         }
     }
 }
