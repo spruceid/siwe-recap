@@ -207,7 +207,7 @@ impl Capability {
         let encoded = self.to_resource()?;
         message.resources.push(encoded);
         let m = message.statement.unwrap_or_default();
-        message.statement = Some(if m.len() > 0 {
+        message.statement = Some(if m.is_empty() {
             format!("{m} {statement}")
         } else {
             statement
