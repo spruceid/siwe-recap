@@ -1,6 +1,6 @@
 use crate::{capabilities_to_statement, translation::ToResource, Error};
 use cid::Cid;
-use indexmap::{map::IndexMap, set::IndexSet};
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::ability::{Ability, AbilityName, AbilityNamespace};
 
@@ -18,13 +18,13 @@ pub struct Capability {
     // a Vec allows for maintaining the ordering when de/serialized as a map
     /// The actions that are allowed for the given target within this namespace.
     #[serde(rename = "att")]
-    #[serde_as(as = "IndexMap<DisplayFromStr, _>")]
-    attenuations: IndexMap<UriString, IndexMap<Ability, Vec<IndexMap<String, Value>>>>,
+    #[serde_as(as = "BTreeMap<DisplayFromStr, _>")]
+    attenuations: BTreeMap<UriString, BTreeMap<Ability, Vec<BTreeMap<String, Value>>>>,
 
     /// Cids of parent delegations which these capabilities are attenuated from
     #[serde(rename = "prf")]
-    #[serde_as(as = "IndexSet<DisplayFromStr>")]
-    proof: IndexSet<Cid>,
+    #[serde_as(as = "BTreeSet<DisplayFromStr>")]
+    proof: BTreeSet<Cid>,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -42,7 +42,7 @@ impl Capability {
         target: T,
         action: A,
     ) -> Result<
-        Option<impl Iterator<Item = &IndexMap<String, Value>>>,
+        Option<impl Iterator<Item = &BTreeMap<String, Value>>>,
         ConvertError<T::Error, A::Error>,
     >
     where
@@ -60,7 +60,7 @@ impl Capability {
         &'l self,
         target: &UriString,
         action: &Ability,
-    ) -> Option<impl Iterator<Item = &'l IndexMap<String, Value>>> {
+    ) -> Option<impl Iterator<Item = &'l BTreeMap<String, Value>>> {
         self.attenuations
             .get(target)
             .and_then(|m| m.get(action))
@@ -96,7 +96,7 @@ impl Capability {
         mut self,
         target: T,
         action: A,
-        nb: impl IntoIterator<Item = IndexMap<String, Value>>,
+        nb: impl IntoIterator<Item = BTreeMap<String, Value>>,
     ) -> Result<Self, ConvertError<T::Error, A::Error>>
     where
         T: TryInto<UriString>,
@@ -114,7 +114,7 @@ impl Capability {
     /// Read the set of abilities granted in this capabilities set
     pub fn abilities(
         &self,
-    ) -> impl Iterator<Item = (&UriString, &IndexMap<Ability, Vec<IndexMap<String, Value>>>)> {
+    ) -> impl Iterator<Item = (&UriString, &BTreeMap<Ability, Vec<BTreeMap<String, Value>>>)> {
         self.attenuations.iter()
     }
 
@@ -122,7 +122,7 @@ impl Capability {
     pub fn abilities_for<T>(
         &self,
         target: T,
-    ) -> Result<Option<impl Iterator<Item = (&Ability, &Vec<IndexMap<String, Value>>)>>, T::Error>
+    ) -> Result<Option<impl Iterator<Item = (&Ability, &Vec<BTreeMap<String, Value>>)>>, T::Error>
     where
         T: TryInto<UriString>,
     {
@@ -154,7 +154,7 @@ impl Capability {
             abilities
                 .iter()
                 .fold(
-                    IndexMap::<&AbilityNamespace, Vec<&AbilityName>>::new(),
+                    BTreeMap::<&AbilityNamespace, Vec<&AbilityName>>::new(),
                     |mut map, (ability, _)| {
                         map.entry(ability.namespace())
                             .or_default()
@@ -184,10 +184,18 @@ impl Capability {
 
     /// Apply this capabilities set to a SIWE message by writing to it's statement and resource list
     pub fn build_message(&self, mut message: Message) -> Result<Message, Error> {
+        if self.attenuations.is_empty() {
+            return Ok(message);
+        }
         let statement = capabilities_to_statement(self, &message.uri);
         let encoded = self.to_resource()?;
         message.resources.push(encoded);
-        message.statement = Some([message.statement.unwrap_or_default(), statement].concat());
+        let m = message.statement.unwrap_or_default();
+        message.statement = Some(if m.len() > 0 {
+            format!("{m} {statement}")
+        } else {
+            statement
+        });
         Ok(message)
     }
 }
@@ -198,7 +206,7 @@ mod test {
 
     #[test]
     fn deser() {
-        let ser = r#"{"att":{"http://example.com/public/photos/":{"crud/delete":[]},"mailto:username@example.com":{"msg/send":[{"to":"someone@email.com"},{"to":"joe@email.com"}],"msg/receive":[{"max_count":5,"templates":["newsletter","marketing"]}]}},"prf":["bafysameboaza4mnsng7t3djdbilbrnliv6ikxh45zsph7kpettjfbp4ad2g2uu2znujlf2afphw25d4y35pq"]}"#;
+        let ser = r#"{"att":{"http://example.com/public/photos/":{"crud/delete":[]},"mailto:username@example.com":{"msg/receive":[{"max_count":5,"templates":["newsletter","marketing"]}],"msg/send":[{"to":"someone@email.com"},{"to":"joe@email.com"}]}},"prf":["bafysameboaza4mnsng7t3djdbilbrnliv6ikxh45zsph7kpettjfbp4ad2g2uu2znujlf2afphw25d4y35pq"]}"#;
         let cap: Capability = serde_json::from_str(ser).unwrap();
         let reser = serde_json::to_string(&cap).unwrap();
         assert_eq!(ser, reser);

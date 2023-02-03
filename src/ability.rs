@@ -5,13 +5,15 @@ use std::{
     str::FromStr,
 };
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Serialize, Deserialize, PartialOrd, Ord)]
 pub struct AbilityNamespace(String);
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Serialize, Deserialize, PartialOrd, Ord)]
 pub struct AbilityName(String);
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone, SerializeDisplay, DeserializeFromStr)]
+#[derive(
+    Debug, PartialEq, Eq, Hash, Clone, SerializeDisplay, DeserializeFromStr, PartialOrd, Ord,
+)]
 pub struct Ability(AbilityNamespace, AbilityName);
 
 impl Ability {
