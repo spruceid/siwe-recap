@@ -89,7 +89,7 @@ mod test {
             .expect("failed to build SIWE delegation");
 
         assert_eq!(
-            SIWE_WITH_STATEMENT,
+            SIWE_WITH_STATEMENT.trim(),
             msg.to_string(),
             "generated SIWE message did not match expectation"
         );
@@ -197,7 +197,7 @@ mod test {
             .expect("failed to build SIWE delegation");
 
         assert_eq!(
-            SIWE,
+            SIWE.trim(),
             msg.to_string(),
             "generated SIWE message did not match expectation"
         );

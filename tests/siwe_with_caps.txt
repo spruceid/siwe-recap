@@ -1,7 +1,7 @@
 example.com wants you to sign in with your Ethereum account:
 0x0000000000000000000000000000000000000000
 
- I further authorize did:key:example to perform the following actions on my behalf: (0) "kv": "get", "list", "metadata" for "kepler:ens:example.eth://default/kv". (1) "kv": "delete", "get", "list", "metadata", "put" for "kepler:ens:example.eth://default/kv/dapp-space". (2) "kv": "delete", "get", "list", "metadata", "put" for "kepler:ens:example.eth://default/kv/public". (3) "credential": "present" for "urn:credential:type:type1".
+I further authorize did:key:example to perform the following actions on my behalf: (1) "kv": "get", "list", "metadata" for "kepler:ens:example.eth://default/kv". (2) "kv": "delete", "get", "list", "metadata", "put" for "kepler:ens:example.eth://default/kv/dapp-space". (3) "kv": "delete", "get", "list", "metadata", "put" for "kepler:ens:example.eth://default/kv/public". (4) "credential": "present" for "urn:credential:type:type1".
 
 URI: did:key:example
 Version: 1
@@ -9,4 +9,4 @@ Chain ID: 1
 Nonce: mynonce1
 Issued At: 2022-06-21T12:00:00.000Z
 Resources:
-- urn:recap::eyJhdHQiOnsia2VwbGVyOmVuczpleGFtcGxlLmV0aDovL2RlZmF1bHQva3YiOnsia3YvZ2V0IjpbXSwia3YvbGlzdCI6W10sImt2L21ldGFkYXRhIjpbXX0sImtlcGxlcjplbnM6ZXhhbXBsZS5ldGg6Ly9kZWZhdWx0L2t2L2RhcHAtc3BhY2UiOnsia3YvZGVsZXRlIjpbXSwia3YvZ2V0IjpbXSwia3YvbGlzdCI6W10sImt2L21ldGFkYXRhIjpbXSwia3YvcHV0IjpbXX0sImtlcGxlcjplbnM6ZXhhbXBsZS5ldGg6Ly9kZWZhdWx0L2t2L3B1YmxpYyI6eyJrdi9kZWxldGUiOltdLCJrdi9nZXQiOltdLCJrdi9saXN0IjpbXSwia3YvbWV0YWRhdGEiOltdLCJrdi9wdXQiOltdfSwidXJuOmNyZWRlbnRpYWw6dHlwZTp0eXBlMSI6eyJjcmVkZW50aWFsL3ByZXNlbnQiOltdfX0sInByZiI6W119
+- urn:recap:eyJhdHQiOnsia2VwbGVyOmVuczpleGFtcGxlLmV0aDovL2RlZmF1bHQva3YiOnsia3YvZ2V0IjpbXSwia3YvbGlzdCI6W10sImt2L21ldGFkYXRhIjpbXX0sImtlcGxlcjplbnM6ZXhhbXBsZS5ldGg6Ly9kZWZhdWx0L2t2L2RhcHAtc3BhY2UiOnsia3YvZGVsZXRlIjpbXSwia3YvZ2V0IjpbXSwia3YvbGlzdCI6W10sImt2L21ldGFkYXRhIjpbXSwia3YvcHV0IjpbXX0sImtlcGxlcjplbnM6ZXhhbXBsZS5ldGg6Ly9kZWZhdWx0L2t2L3B1YmxpYyI6eyJrdi9kZWxldGUiOltdLCJrdi9nZXQiOltdLCJrdi9saXN0IjpbXSwia3YvbWV0YWRhdGEiOltdLCJrdi9wdXQiOltdfSwidXJuOmNyZWRlbnRpYWw6dHlwZTp0eXBlMSI6eyJjcmVkZW50aWFsL3ByZXNlbnQiOltdfX0sInByZiI6W119
