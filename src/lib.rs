@@ -70,7 +70,7 @@ mod test {
     #[test]
     fn build_delegation_statement_append() {
         let msg = Capability::default()
-            .with_action("credential:*", "credential/present", [])
+            .with_action_convert("credential:*", "credential/present", [])
             .unwrap()
             .build_message(Message {
                 domain: "example.com".parse().unwrap(),
@@ -124,57 +124,57 @@ mod test {
     #[test]
     fn build_delegation() {
         let msg = Capability::default()
-            .with_action("urn:credential:type:type1", "credential/present", [])
+            .with_action_convert("urn:credential:type:type1", "credential/present", [])
             .unwrap()
-            .with_action("kepler:ens:example.eth://default/kv", "kv/list", [])
+            .with_action_convert("kepler:ens:example.eth://default/kv", "kv/list", [])
             .unwrap()
-            .with_action("kepler:ens:example.eth://default/kv", "kv/get", [])
+            .with_action_convert("kepler:ens:example.eth://default/kv", "kv/get", [])
             .unwrap()
-            .with_action("kepler:ens:example.eth://default/kv", "kv/metadata", [])
+            .with_action_convert("kepler:ens:example.eth://default/kv", "kv/metadata", [])
             .unwrap()
-            .with_action("kepler:ens:example.eth://default/kv/public", "kv/list", [])
+            .with_action_convert("kepler:ens:example.eth://default/kv/public", "kv/list", [])
             .unwrap()
-            .with_action("kepler:ens:example.eth://default/kv/public", "kv/get", [])
+            .with_action_convert("kepler:ens:example.eth://default/kv/public", "kv/get", [])
             .unwrap()
-            .with_action(
+            .with_action_convert(
                 "kepler:ens:example.eth://default/kv/public",
                 "kv/metadata",
                 [],
             )
             .unwrap()
-            .with_action("kepler:ens:example.eth://default/kv/public", "kv/put", [])
+            .with_action_convert("kepler:ens:example.eth://default/kv/public", "kv/put", [])
             .unwrap()
-            .with_action(
+            .with_action_convert(
                 "kepler:ens:example.eth://default/kv/public",
                 "kv/delete",
                 [],
             )
             .unwrap()
-            .with_action(
+            .with_action_convert(
                 "kepler:ens:example.eth://default/kv/dapp-space",
                 "kv/list",
                 [],
             )
             .unwrap()
-            .with_action(
+            .with_action_convert(
                 "kepler:ens:example.eth://default/kv/dapp-space",
                 "kv/get",
                 [],
             )
             .unwrap()
-            .with_action(
+            .with_action_convert(
                 "kepler:ens:example.eth://default/kv/dapp-space",
                 "kv/metadata",
                 [],
             )
             .unwrap()
-            .with_action(
+            .with_action_convert(
                 "kepler:ens:example.eth://default/kv/dapp-space",
                 "kv/put",
                 [],
             )
             .unwrap()
-            .with_action(
+            .with_action_convert(
                 "kepler:ens:example.eth://default/kv/dapp-space",
                 "kv/delete",
                 [],

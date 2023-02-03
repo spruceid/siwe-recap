@@ -92,7 +92,25 @@ impl Capability {
     }
 
     /// Add an allowed action for the given target, with a set of note-benes
-    pub fn with_action<T, A>(
+    pub fn with_action(
+        mut self,
+        target: UriString,
+        action: Ability,
+        nb: impl IntoIterator<Item = BTreeMap<String, Value>>,
+    ) -> Self {
+        self.attenuations
+            .entry(target)
+            .or_default()
+            .entry(action)
+            .or_default()
+            .extend(nb);
+        self
+    }
+
+    /// Add an allowed action for the given target, with a set of note-benes.
+    ///
+    /// This method automatically converts the provided args into the correct types for convenience.
+    pub fn with_action_convert<T, A>(
         mut self,
         target: T,
         action: A,
@@ -102,13 +120,11 @@ impl Capability {
         T: TryInto<UriString>,
         A: TryInto<Ability>,
     {
-        self.attenuations
-            .entry(target.try_into().map_err(ConvertError::InvalidTarget)?)
-            .or_default()
-            .entry(action.try_into().map_err(ConvertError::InvalidAction)?)
-            .or_default()
-            .extend(nb);
-        Ok(self)
+        Ok(self.with_action(
+            target.try_into().map_err(ConvertError::InvalidTarget)?,
+            action.try_into().map_err(ConvertError::InvalidAction)?,
+            nb,
+        ))
     }
 
     /// Read the set of abilities granted in this capabilities set
