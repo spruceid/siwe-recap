@@ -111,7 +111,7 @@ impl Capability {
     ///
     /// This method automatically converts the provided args into the correct types for convenience.
     pub fn with_action_convert<T, A>(
-        mut self,
+        self,
         target: T,
         action: A,
         nb: impl IntoIterator<Item = BTreeMap<String, Value>>,

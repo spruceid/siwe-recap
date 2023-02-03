@@ -205,7 +205,7 @@ mod test {
 
     #[test]
     fn verify() {
-        let msg: Message = SIWE.parse().unwrap();
+        let msg: Message = SIWE.trim().parse().unwrap();
         assert!(
             verify_statement(&msg).expect("unable to parse resources as capabilities"),
             "statement did not match capabilities"
@@ -231,7 +231,7 @@ mod test {
 
     #[test]
     fn verify_interleaved_resources() {
-        let msg: Message = SIWE_WITH_INTERLEAVED_RES.parse().unwrap();
+        let msg: Message = SIWE_WITH_INTERLEAVED_RES.trim().parse().unwrap();
         assert!(
             verify_statement(&msg).expect("unable to parse resources as capabilities"),
             "statement did not match capabilities"

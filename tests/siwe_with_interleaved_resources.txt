@@ -1,7 +1,7 @@
 example.com wants you to sign in with your Ethereum account:
 0x0000000000000000000000000000000000000000
 
-I further authorize did:key:example to perform the following actions on my behalf: (0) "credential": "present" for "credential:*". (1) "kv": "get", "list", "metadata" for "kepler:ens:example.eth://default/".
+I further authorize did:key:example to perform the following actions on my behalf: (1) "credential": "present" for "credential:*". (2) "kv": "get", "list", "metadata" for "kepler:ens:example.eth://default/".
 
 URI: did:key:example
 Version: 1
