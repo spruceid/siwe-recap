@@ -70,7 +70,7 @@ mod test {
     #[test]
     fn build_delegation_statement_append() {
         let msg = Capability::default()
-            .with_action("credential", "credential/present", [])
+            .with_action("credential:*", "credential/present", [])
             .unwrap()
             .build_message(Message {
                 domain: "example.com".parse().unwrap(),

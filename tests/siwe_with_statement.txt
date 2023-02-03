@@ -1,7 +1,7 @@
 example.com wants you to sign in with your Ethereum account:
 0x0000000000000000000000000000000000000000
 
-Some custom statement. I further authorize did:key:example to perform the following actions on my behalf: (1) credential: present for any.
+Some custom statement. I further authorize did:key:example to perform the following actions on my behalf: (1) "credential": "present" for "credential:*".
 
 URI: did:key:example
 Version: 1
@@ -10,4 +10,4 @@ Nonce: mynonce1
 Issued At: 2022-06-21T12:00:00.000Z
 Resources:
 - http://example.com
-- urn:recap:credential:eyJkZWYiOlsicHJlc2VudCJdfQ
+- urn:recap:eyJhdHQiOnsiY3JlZGVudGlhbDoqIjp7ImNyZWRlbnRpYWwvcHJlc2VudCI6W119fSwicHJmIjpbXX0
