@@ -233,8 +233,8 @@ mod test {
     fn verify_interleaved_resources() {
         let msg: Message = SIWE_WITH_INTERLEAVED_RES.trim().parse().unwrap();
         assert!(
-            verify_statement(&msg).expect("unable to parse resources as capabilities"),
-            "statement did not match capabilities"
+            verify_statement(&msg).is_err(),
+            "recap resource should come last"
         );
     }
 }

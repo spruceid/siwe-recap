@@ -8,7 +8,7 @@ pub fn extract_capabilities(message: &Message) -> Result<Option<Capability>, Err
     message
         .resources
         .iter()
-        .find(|res| res.as_str().starts_with(RESOURCE_PREFIX))
+        .last()
         .map(Capability::from_resource)
         .transpose()
 }
