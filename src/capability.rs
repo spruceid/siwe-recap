@@ -207,10 +207,11 @@ impl Capability {
         let encoded = self.to_resource()?;
         message.resources.push(encoded);
         let m = message.statement.unwrap_or_default();
+        println!("{m}");
         message.statement = Some(if m.is_empty() {
-            format!("{m} {statement}")
-        } else {
             statement
+        } else {
+            format!("{m} {statement}")
         });
         Ok(message)
     }
