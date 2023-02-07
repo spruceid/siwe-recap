@@ -129,6 +129,43 @@ where
         ))
     }
 
+    /// Add a set of allowed action for the given target, with associated note-benes
+    pub fn with_actions(
+        mut self,
+        target: UriString,
+        abilities: impl IntoIterator<Item = (Ability, impl IntoIterator<Item = BTreeMap<String, NB>>)>,
+    ) -> Self {
+        let entry = self.attenuations.entry(target).or_default();
+        for (ability, nbs) in abilities {
+            let ab_entry = entry.entry(ability).or_default();
+            ab_entry.extend(nbs);
+        }
+        self
+    }
+
+    /// Add a set of allowed action for the given target, with associated note-benes.
+    ///
+    /// This method automatically converts the provided args into the correct types for convenience.
+    pub fn with_actions_convert<T, A, N>(
+        self,
+        target: T,
+        abilities: impl IntoIterator<Item = (A, N)>,
+    ) -> Result<Self, ConvertError<T::Error, A::Error>>
+    where
+        T: TryInto<UriString>,
+        A: TryInto<Ability>,
+        N: IntoIterator<Item = BTreeMap<String, NB>>,
+    {
+        Ok(self.with_actions(
+            target.try_into().map_err(ConvertError::InvalidTarget)?,
+            abilities
+                .into_iter()
+                .map(|(a, n)| Ok((a.try_into()?, n)))
+                .collect::<Result<Vec<(Ability, N)>, A::Error>>()
+                .map_err(ConvertError::InvalidAction)?,
+        ))
+    }
+
     /// Read the set of abilities granted in this capabilities set
     pub fn abilities(&self) -> &BTreeMap<UriString, BTreeMap<Ability, Vec<BTreeMap<String, NB>>>> {
         &self.attenuations
@@ -196,6 +233,15 @@ where
                 resource
             )
         })
+    }
+
+    pub fn into_inner(
+        self,
+    ) -> (
+        BTreeMap<UriString, BTreeMap<Ability, Vec<BTreeMap<String, NB>>>>,
+        BTreeSet<Cid>,
+    ) {
+        (self.attenuations, self.proof)
     }
 
     /// Apply this capabilities set to a SIWE message by writing to it's statement and resource list
