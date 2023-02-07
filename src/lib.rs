@@ -31,6 +31,7 @@ pub fn verify_statement(message: &Message) -> Result<bool, Error> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use serde_json::Value;
     use siwe::Message;
 
     const SIWE_WITH_INTERLEAVED_RES: &'static str =
@@ -43,7 +44,7 @@ mod test {
 
     #[test]
     fn no_caps_statement_append() {
-        let msg = Capability::default()
+        let msg = Capability::<Value>::default()
             .build_message(Message {
                 domain: "example.com".parse().unwrap(),
                 address: Default::default(),
@@ -69,7 +70,7 @@ mod test {
 
     #[test]
     fn build_delegation_statement_append() {
-        let msg = Capability::default()
+        let msg = Capability::<Value>::default()
             .with_action_convert("credential:*", "credential/present", [])
             .unwrap()
             .build_message(Message {
@@ -97,7 +98,7 @@ mod test {
 
     #[test]
     fn no_caps() {
-        let msg = Capability::default()
+        let msg = Capability::<Value>::default()
             .build_message(Message {
                 domain: "example.com".parse().unwrap(),
                 address: Default::default(),

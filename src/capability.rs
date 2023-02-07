@@ -14,12 +14,14 @@ use siwe::Message;
 /// Representation of a set of delegated Capabilities.
 #[serde_as]
 #[derive(Clone, Default, Debug, Serialize, Deserialize)]
-pub struct Capability {
-    // a Vec allows for maintaining the ordering when de/serialized as a map
+pub struct Capability<NB = Value>
+where
+    NB: for<'d> Deserialize<'d> + Serialize,
+{
     /// The actions that are allowed for the given target within this namespace.
     #[serde(rename = "att")]
     #[serde_as(as = "BTreeMap<DisplayFromStr, _>")]
-    attenuations: BTreeMap<UriString, BTreeMap<Ability, Vec<BTreeMap<String, Value>>>>,
+    attenuations: BTreeMap<UriString, BTreeMap<Ability, Vec<BTreeMap<String, NB>>>>,
 
     /// Cids of parent delegations which these capabilities are attenuated from
     #[serde(rename = "prf")]
@@ -35,16 +37,16 @@ pub enum ConvertError<T, A> {
     InvalidAction(A),
 }
 
-impl Capability {
+impl<NB> Capability<NB>
+where
+    NB: for<'d> Deserialize<'d> + Serialize,
+{
     /// Check if a particular action is allowed for the specified target, or is allowed globally.
     pub fn can<T, A>(
         &self,
         target: T,
         action: A,
-    ) -> Result<
-        Option<impl Iterator<Item = &BTreeMap<String, Value>>>,
-        ConvertError<T::Error, A::Error>,
-    >
+    ) -> Result<Option<impl Iterator<Item = &BTreeMap<String, NB>>>, ConvertError<T::Error, A::Error>>
     where
         T: TryInto<UriString>,
         A: TryInto<Ability>,
@@ -60,7 +62,7 @@ impl Capability {
         &'l self,
         target: &UriString,
         action: &Ability,
-    ) -> Option<impl Iterator<Item = &'l BTreeMap<String, Value>>> {
+    ) -> Option<impl Iterator<Item = &'l BTreeMap<String, NB>>> {
         self.attenuations
             .get(target)
             .and_then(|m| m.get(action))
@@ -96,7 +98,7 @@ impl Capability {
         mut self,
         target: UriString,
         action: Ability,
-        nb: impl IntoIterator<Item = BTreeMap<String, Value>>,
+        nb: impl IntoIterator<Item = BTreeMap<String, NB>>,
     ) -> Self {
         self.attenuations
             .entry(target)
@@ -114,7 +116,7 @@ impl Capability {
         self,
         target: T,
         action: A,
-        nb: impl IntoIterator<Item = BTreeMap<String, Value>>,
+        nb: impl IntoIterator<Item = BTreeMap<String, NB>>,
     ) -> Result<Self, ConvertError<T::Error, A::Error>>
     where
         T: TryInto<UriString>,
@@ -128,26 +130,24 @@ impl Capability {
     }
 
     /// Read the set of abilities granted in this capabilities set
-    pub fn abilities(
-        &self,
-    ) -> impl Iterator<Item = (&UriString, &BTreeMap<Ability, Vec<BTreeMap<String, Value>>>)> {
-        self.attenuations.iter()
+    pub fn abilities(&self) -> &BTreeMap<UriString, BTreeMap<Ability, Vec<BTreeMap<String, NB>>>> {
+        &self.attenuations
     }
 
     /// Read the set of abilities granted for a given target in this capabilities set
     pub fn abilities_for<T>(
         &self,
         target: T,
-    ) -> Result<Option<impl Iterator<Item = (&Ability, &Vec<BTreeMap<String, Value>>)>>, T::Error>
+    ) -> Result<Option<&BTreeMap<Ability, Vec<BTreeMap<String, NB>>>>, T::Error>
     where
         T: TryInto<UriString>,
     {
-        Ok(self.attenuations.get(&target.try_into()?).map(|m| m.iter()))
+        Ok(self.attenuations.get(&target.try_into()?))
     }
 
     /// Read the set of proofs which support the granted capabilities
-    pub fn proof(&self) -> impl Iterator<Item = &Cid> {
-        self.proof.iter()
+    pub fn proof(&self) -> &BTreeSet<Cid> {
+        &self.proof
     }
 
     /// Add a supporting proof CID

@@ -1,6 +1,7 @@
 use crate::{Capability, Error, RESOURCE_PREFIX};
 
 use iri_string::types::UriString;
+use serde::{Deserialize, Serialize};
 use siwe::Message;
 
 /// Extract the encoded capabilities from a SIWE message.
@@ -14,7 +15,13 @@ pub fn extract_capabilities(message: &Message) -> Result<Option<Capability>, Err
 }
 
 /// Generate a ReCap statement from capabilities and URI (delegee).
-pub fn capabilities_to_statement(capabilities: &Capability, delegee_uri: &UriString) -> String {
+pub fn capabilities_to_statement<NB>(
+    capabilities: &Capability<NB>,
+    delegee_uri: &UriString,
+) -> String
+where
+    NB: for<'d> Deserialize<'d> + Serialize,
+{
     [
         "I further authorize ".to_string(),
         delegee_uri.to_string(),
@@ -38,7 +45,10 @@ trait FromResource {
         Self: Sized;
 }
 
-impl ToResource for &Capability {
+impl<NB> ToResource for &Capability<NB>
+where
+    NB: for<'d> Deserialize<'d> + Serialize,
+{
     fn to_resource(self) -> Result<UriString, Error> {
         self.encode()
             .map(|encoded| format!("{RESOURCE_PREFIX}{encoded}"))
@@ -46,7 +56,10 @@ impl ToResource for &Capability {
     }
 }
 
-impl FromResource for Capability {
+impl<NB> FromResource for Capability<NB>
+where
+    NB: for<'d> Deserialize<'d> + Serialize,
+{
     fn from_resource(resource: &UriString) -> Result<Self, Error> {
         resource
             .as_str()
