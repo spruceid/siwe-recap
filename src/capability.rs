@@ -12,6 +12,7 @@ use iri_string::types::UriString;
 use siwe::Message;
 
 pub type NoteBenes<T> = Vec<BTreeMap<String, T>>;
+pub type Attenuations<NB> = BTreeMap<UriString, BTreeMap<Ability, NoteBenes<NB>>>;
 
 /// Representation of a set of delegated Capabilities.
 #[serde_as]
@@ -237,12 +238,7 @@ where
         })
     }
 
-    pub fn into_inner(
-        self,
-    ) -> (
-        BTreeMap<UriString, BTreeMap<Ability, NoteBenes<NB>>>,
-        BTreeSet<Cid>,
-    ) {
+    pub fn into_inner(self) -> (Attenuations<NB>, BTreeSet<Cid>) {
         (self.attenuations, self.proof)
     }
 
