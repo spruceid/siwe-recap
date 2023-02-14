@@ -356,11 +356,12 @@ pub enum VerificationError {
 mod test {
     use super::*;
 
+    const JSON_CAP: &'static str = include_str!("../tests/serialized_cap.json");
+
     #[test]
     fn deser() {
-        let ser = r#"{"att":{"http://example.com/public/photos/":{"crud/delete":[]},"mailto:username@example.com":{"msg/receive":[{"max_count":5,"templates":["newsletter","marketing"]}],"msg/send":[{"to":"someone@email.com"},{"to":"joe@email.com"}]}},"prf":["bafysameboaza4mnsng7t3djdbilbrnliv6ikxh45zsph7kpettjfbp4ad2g2uu2znujlf2afphw25d4y35pq"]}"#;
-        let cap: Capability = serde_json::from_str(ser).unwrap();
+        let cap: Capability = serde_json::from_str(JSON_CAP).unwrap();
         let reser = serde_json::to_string(&cap).unwrap();
-        assert_eq!(ser, reser);
+        assert_eq!(JSON_CAP.trim(), reser);
     }
 }
