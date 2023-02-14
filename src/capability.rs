@@ -11,8 +11,8 @@ use serde_with::{serde_as, DisplayFromStr};
 use iri_string::types::UriString;
 use siwe::Message;
 
-pub type NoteBenes<T> = Vec<BTreeMap<String, T>>;
-pub type Attenuations<NB> = BTreeMap<UriString, BTreeMap<Ability, NoteBenes<NB>>>;
+pub type NoteBene<T> = Vec<BTreeMap<String, T>>;
+pub type Attenuations<NB> = BTreeMap<UriString, BTreeMap<Ability, NoteBene<NB>>>;
 
 /// Representation of a set of delegated Capabilities.
 #[serde_as]
@@ -24,7 +24,7 @@ where
     /// The actions that are allowed for the given target within this namespace.
     #[serde(rename = "att")]
     #[serde_as(as = "BTreeMap<DisplayFromStr, _>")]
-    attenuations: BTreeMap<UriString, BTreeMap<Ability, NoteBenes<NB>>>,
+    attenuations: BTreeMap<UriString, BTreeMap<Ability, NoteBene<NB>>>,
 
     /// Cids of parent delegations which these capabilities are attenuated from
     #[serde(rename = "prf")]
@@ -170,7 +170,7 @@ where
     }
 
     /// Read the set of abilities granted in this capabilities set
-    pub fn abilities(&self) -> &BTreeMap<UriString, BTreeMap<Ability, NoteBenes<NB>>> {
+    pub fn abilities(&self) -> &BTreeMap<UriString, BTreeMap<Ability, NoteBene<NB>>> {
         &self.attenuations
     }
 
@@ -178,7 +178,7 @@ where
     pub fn abilities_for<T>(
         &self,
         target: T,
-    ) -> Result<Option<&BTreeMap<Ability, NoteBenes<NB>>>, T::Error>
+    ) -> Result<Option<&BTreeMap<Ability, NoteBene<NB>>>, T::Error>
     where
         T: TryInto<UriString>,
     {
