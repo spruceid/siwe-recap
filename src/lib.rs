@@ -1,32 +1,14 @@
 mod ability;
 mod capability;
-mod error;
-mod translation;
 
-pub use ability::{Ability, AbilityName, AbilityNamespace};
-pub use capability::{Capability, ConvertError};
-pub use error::Error;
-pub use translation::{capabilities_to_statement, extract_capabilities};
-
-use siwe::Message;
+pub use ability::{Ability, AbilityName, AbilityNamespace, AbilityParseError, ActionParseError};
+pub use capability::{
+    Attenuations, Capability, ConvertError, DecodingError, EncodingError, NoteBene,
+    VerificationError,
+};
 
 /// The prefix for a ReCap uri.
 pub const RESOURCE_PREFIX: &str = "urn:recap:";
-
-/// Verifies a ReCap statement.
-///
-/// Checks that the encoded delegations match the human-readable description in the statement, and
-/// that the URI displayed in the statement matches the uri field.
-pub fn verify_statement(message: &Message) -> Result<bool, Error> {
-    let capabilities = extract_capabilities(message)?;
-    let generated_statement = capabilities.map(|c| capabilities_to_statement(&c, &message.uri));
-    let verified = match (&message.statement, &generated_statement) {
-        (None, None) => true,
-        (Some(o), Some(a)) => o.ends_with(a),
-        _ => false,
-    };
-    Ok(verified)
-}
 
 #[cfg(test)]
 mod test {
@@ -181,7 +163,10 @@ mod test {
     fn verify() {
         let msg: Message = SIWE.trim().parse().unwrap();
         assert!(
-            verify_statement(&msg).expect("unable to parse resources as capabilities"),
+            Capability::<Value>::extract_and_verify(&msg)
+                .transpose()
+                .expect("unable to parse resources as capabilities")
+                .is_ok(),
             "statement did not match capabilities"
         );
 
@@ -191,14 +176,14 @@ mod test {
             .iter_mut()
             .for_each(|statement| statement.push_str(" I am the walrus!"));
         assert!(
-            !verify_statement(&altered_msg_1).expect("unable to parse resources as capabilities"),
+            Capability::<Value>::extract_and_verify(&altered_msg_1).is_err(),
             "altered statement incorrectly matched capabilities"
         );
 
         let mut altered_msg_2 = msg.clone();
         altered_msg_2.uri = "did:key:altered".parse().unwrap();
         assert!(
-            !verify_statement(&altered_msg_2).expect("unable to parse resources as capabilities"),
+            Capability::<Value>::extract_and_verify(&altered_msg_2).is_err(),
             "altered uri incorrectly matched capabilities"
         );
     }
@@ -207,7 +192,9 @@ mod test {
     fn verify_interleaved_resources() {
         let msg: Message = SIWE_WITH_INTERLEAVED_RES.trim().parse().unwrap();
         assert!(
-            verify_statement(&msg).is_err(),
+            Capability::<Value>::extract_and_verify(&msg)
+                .unwrap()
+                .is_none(),
             "recap resource should come last"
         );
     }

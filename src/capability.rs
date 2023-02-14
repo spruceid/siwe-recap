@@ -1,4 +1,4 @@
-use crate::{capabilities_to_statement, translation::ToResource, Error};
+use crate::RESOURCE_PREFIX;
 use cid::Cid;
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -70,18 +70,6 @@ where
             .get(target)
             .and_then(|m| m.get(action))
             .map(|v| v.iter())
-    }
-
-    pub(crate) fn encode(&self) -> Result<String, Error> {
-        serde_json::to_vec(self)
-            .map_err(Error::Ser)
-            .map(|bytes| base64::encode_config(bytes, base64::URL_SAFE_NO_PAD))
-    }
-
-    pub(crate) fn decode(encoded: &str) -> Result<Self, Error> {
-        base64::decode_config(encoded, base64::URL_SAFE_NO_PAD)
-            .map_err(Error::Base64Decode)
-            .and_then(|bytes| serde_json::from_slice(&bytes).map_err(Error::De))
     }
 
     /// Merge this Capabilities set with another
@@ -223,7 +211,7 @@ where
         })
     }
 
-    pub(crate) fn to_statement_lines(&self) -> impl Iterator<Item = String> + '_ {
+    fn to_statement_lines(&self) -> impl Iterator<Item = String> + '_ {
         self.to_line_groups().map(|(resource, namespace, names)| {
             format!(
                 "\"{}\": {} for \"{}\".",
@@ -243,12 +231,12 @@ where
     }
 
     /// Apply this capabilities set to a SIWE message by writing to it's statement and resource list
-    pub fn build_message(&self, mut message: Message) -> Result<Message, Error> {
+    pub fn build_message(&self, mut message: Message) -> Result<Message, EncodingError> {
         if self.attenuations.is_empty() {
             return Ok(message);
         }
-        let statement = capabilities_to_statement(self, &message.uri);
-        let encoded = self.to_resource()?;
+        let statement = self.to_statement(&message.uri);
+        let encoded: UriString = self.try_into()?;
         message.resources.push(encoded);
         let m = message.statement.unwrap_or_default();
         message.statement = Some(if m.is_empty() {
@@ -258,6 +246,110 @@ where
         });
         Ok(message)
     }
+
+    /// Generate a ReCap statement from capabilities and URI (delegee).
+    pub fn to_statement(&self, delegee_uri: &UriString) -> String {
+        [
+            "I further authorize ".to_string(),
+            delegee_uri.to_string(),
+            " to perform the following actions on my behalf:".to_string(),
+            self.to_statement_lines()
+                .enumerate()
+                .map(|(n, line)| format!(" ({}) {line}", n + 1))
+                .collect(),
+        ]
+        .concat()
+    }
+
+    fn extract(message: &Message) -> Result<Option<Self>, DecodingError> {
+        message
+            .resources
+            .iter()
+            .last()
+            .filter(|u| u.as_str().starts_with(RESOURCE_PREFIX))
+            .map(|u| Self::try_from(u))
+            .transpose()
+    }
+
+    /// Extract the encoded capabilities from a SIWE message and ensures the correctness of the statement.
+    pub fn extract_and_verify(message: &Message) -> Result<Option<Self>, VerificationError> {
+        if let Some(c) = Self::extract(message)? {
+            let expected = c.to_statement(&message.uri);
+            match &message.statement {
+                Some(s) if s.ends_with(&expected) => Ok(Some(c)),
+                _ => Err(VerificationError::IncorrectStatement(expected)),
+            }
+        } else {
+            // no caps
+            Ok(None)
+        }
+    }
+
+    fn encode(&self) -> Result<String, EncodingError> {
+        serde_json::to_vec(self)
+            .map_err(EncodingError::Ser)
+            .map(|bytes| base64::encode_config(bytes, base64::URL_SAFE_NO_PAD))
+    }
+
+    fn decode(encoded: &str) -> Result<Self, DecodingError> {
+        base64::decode_config(encoded, base64::URL_SAFE_NO_PAD)
+            .map_err(DecodingError::Base64Decode)
+            .and_then(|bytes| serde_json::from_slice(&bytes).map_err(DecodingError::De))
+    }
+}
+
+impl<NB> TryFrom<&UriString> for Capability<NB>
+where
+    NB: for<'d> Deserialize<'d> + Serialize,
+{
+    type Error = DecodingError;
+    fn try_from(uri: &UriString) -> Result<Self, Self::Error> {
+        uri.as_str()
+            .strip_prefix(RESOURCE_PREFIX)
+            .ok_or_else(|| DecodingError::InvalidResourcePrefix(uri.to_string()))
+            .and_then(Capability::decode)
+    }
+}
+
+impl<NB> TryFrom<&Capability<NB>> for UriString
+where
+    NB: for<'d> Deserialize<'d> + Serialize,
+{
+    type Error = EncodingError;
+    fn try_from(cap: &Capability<NB>) -> Result<Self, Self::Error> {
+        cap.encode()
+            .map(|encoded| format!("{RESOURCE_PREFIX}{encoded}"))
+            .and_then(|s| s.parse().map_err(EncodingError::UriParse))
+    }
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum DecodingError {
+    #[error(
+        "invalid resource prefix (expected prefix: {}, found: {0})",
+        RESOURCE_PREFIX
+    )]
+    InvalidResourcePrefix(String),
+    #[error("failed to decode base64 capability resource: {0}")]
+    Base64Decode(#[from] base64::DecodeError),
+    #[error("failed to deserialize capability from json: {0}")]
+    De(#[from] serde_json::Error),
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum EncodingError {
+    #[error("unable to parse capability as a URI: {0}")]
+    UriParse(#[from] iri_string::validate::Error),
+    #[error("failed to serialize capability to json: {0}")]
+    Ser(#[from] serde_json::Error),
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum VerificationError {
+    #[error("error decoding capabilities: {0}")]
+    Decoding(#[from] DecodingError),
+    #[error("incorrect statement in siwe message, expected to end with: {0}")]
+    IncorrectStatement(String),
 }
 
 #[cfg(test)]
