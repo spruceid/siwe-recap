@@ -267,7 +267,7 @@ where
             .iter()
             .last()
             .filter(|u| u.as_str().starts_with(RESOURCE_PREFIX))
-            .map(|u| Self::try_from(u))
+            .map(Self::try_from)
             .transpose()
     }
 
