@@ -15,9 +15,6 @@ An example with:
 - the capability to `list`, `get` and retrieve `metadata` from the kepler location `kepler:ens:example.eth://default/kv`, without restrictions
 - the capability to `list`, `get`, retrieve `metadata`, `put` and `delete` from the kepler locations `kepler:ens:example.eth://default/kv/public` and `kepler:ens:example.eth://default/kv/dapp-space`, without restrictions
 ```rust
-let credential: Namespace = "credential".parse()?;
-let kepler: Namespace = "kepler".parse()?;
-
 let msg: siwe::Message = Builder::new()
     .with_actions_convert("urn:credential:type:type1", [("credential/present", [])])?
     .with_actions_convert(
