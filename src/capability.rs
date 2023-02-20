@@ -1,6 +1,6 @@
 use crate::RESOURCE_PREFIX;
 use cid::Cid;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 use crate::ability::{Ability, AbilityName, AbilityNamespace};
 
@@ -28,8 +28,8 @@ where
 
     /// Cids of parent delegations which these capabilities are attenuated from
     #[serde(rename = "prf")]
-    #[serde_as(as = "BTreeSet<DisplayFromStr>")]
-    proof: BTreeSet<Cid>,
+    #[serde_as(as = "Vec<DisplayFromStr>")]
+    proof: Vec<Cid>,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -74,7 +74,13 @@ where
 
     /// Merge this Capabilities set with another
     pub fn merge(mut self, other: Self) -> Self {
-        self.proof.extend(other.proof);
+        for proof in &other.proof {
+            if self.proof.contains(proof) {
+                continue;
+            }
+            self.proof.push(*proof);
+        }
+
         for (uri, abs) in other.attenuations.into_iter() {
             let res_entry = self.attenuations.entry(uri).or_default();
             for (ab, nbs) in abs.into_iter() {
@@ -174,19 +180,27 @@ where
     }
 
     /// Read the set of proofs which support the granted capabilities
-    pub fn proof(&self) -> &BTreeSet<Cid> {
+    pub fn proof(&self) -> &[Cid] {
         &self.proof
     }
 
     /// Add a supporting proof CID
     pub fn with_proof(mut self, proof: &Cid) -> Self {
-        self.proof.insert(*proof);
+        if self.proof.contains(proof) {
+            return self;
+        }
+        self.proof.push(*proof);
         self
     }
 
     /// Add a set of supporting proofs
     pub fn with_proofs<'l>(mut self, proofs: impl IntoIterator<Item = &'l Cid>) -> Self {
-        self.proof.extend(proofs);
+        for proof in proofs {
+            if self.proof.contains(proof) {
+                continue;
+            }
+            self.proof.push(*proof);
+        }
         self
     }
 
@@ -226,7 +240,7 @@ where
         })
     }
 
-    pub fn into_inner(self) -> (Attenuations<NB>, BTreeSet<Cid>) {
+    pub fn into_inner(self) -> (Attenuations<NB>, Vec<Cid>) {
         (self.attenuations, self.proof)
     }
 
