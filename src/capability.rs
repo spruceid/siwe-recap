@@ -1,11 +1,10 @@
 use crate::RESOURCE_PREFIX;
-use cid::Cid;
 use std::collections::BTreeMap;
 
 use crate::ability::{Ability, AbilityName, AbilityNamespace};
 
+use libipld_core::{cid::Cid, ipld::Ipld};
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use serde_with::{serde_as, DisplayFromStr};
 
 use iri_string::types::UriString;
@@ -17,7 +16,7 @@ pub type Attenuations<NB> = BTreeMap<UriString, BTreeMap<Ability, NotaBene<NB>>>
 /// Representation of a set of delegated Capabilities.
 #[serde_as]
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Capability<NB = Value>
+pub struct Capability<NB = Ipld>
 where
     NB: for<'d> Deserialize<'d> + Serialize,
 {
@@ -28,7 +27,6 @@ where
 
     /// Cids of parent delegations which these capabilities are attenuated from
     #[serde(rename = "prf")]
-    #[serde_as(as = "Vec<DisplayFromStr>")]
     proof: Vec<Cid>,
 }
 
@@ -308,7 +306,7 @@ where
     }
 
     fn encode(&self) -> Result<String, EncodingError> {
-        serde_json::to_vec(self)
+        serde_ipld_dagcbor::to_vec(self)
             .map_err(EncodingError::Ser)
             .map(|bytes| base64::encode_config(bytes, base64::URL_SAFE_NO_PAD))
     }
@@ -316,7 +314,7 @@ where
     fn decode(encoded: &str) -> Result<Self, DecodingError> {
         base64::decode_config(encoded, base64::URL_SAFE_NO_PAD)
             .map_err(DecodingError::Base64Decode)
-            .and_then(|bytes| serde_json::from_slice(&bytes).map_err(DecodingError::De))
+            .and_then(|bytes| serde_ipld_dagcbor::from_slice(&bytes).map_err(DecodingError::De))
     }
 }
 
@@ -363,16 +361,16 @@ pub enum DecodingError {
     InvalidResourcePrefix(String),
     #[error("failed to decode base64 capability resource: {0}")]
     Base64Decode(#[from] base64::DecodeError),
-    #[error("failed to deserialize capability from json: {0}")]
-    De(#[from] serde_json::Error),
+    #[error("failed to deserialize capability from dag-cbor: {0}")]
+    De(#[from] serde_ipld_dagcbor::DecodeError<core::convert::Infallible>),
 }
 
 #[derive(thiserror::Error, Debug)]
 pub enum EncodingError {
     #[error("unable to parse capability as a URI: {0}")]
     UriParse(#[from] iri_string::validate::Error),
-    #[error("failed to serialize capability to json: {0}")]
-    Ser(#[from] serde_json::Error),
+    #[error("failed to serialize capability to dag-cbor: {0}")]
+    Ser(#[from] serde_ipld_dagcbor::EncodeError<std::collections::TryReserveError>),
 }
 
 #[derive(thiserror::Error, Debug)]

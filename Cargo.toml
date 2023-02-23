@@ -11,8 +11,8 @@ repository = "https://github.com/spruceid/siwe-recap/"
 base64 = "0.12"
 iri-string = "0.6"
 siwe = "0.5"
-serde_json = { version = "1" }
 serde = { version = "1", features = ["derive"] }
 serde_with = { version = "2" }
+serde_ipld_dagcbor = { version = "0.2" }
+libipld-core = { version = "0.16", features = ["serde-codec"] }
 thiserror = "1"
-cid = "0.10"
