@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 use std::{
+    cmp::Ordering,
     fmt::{Display, Error as FmtError, Formatter},
     str::FromStr,
 };
@@ -11,9 +12,7 @@ pub struct AbilityNamespace(String);
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Serialize, Deserialize, PartialOrd, Ord)]
 pub struct AbilityName(String);
 
-#[derive(
-    Debug, PartialEq, Eq, Hash, Clone, SerializeDisplay, DeserializeFromStr, PartialOrd, Ord,
-)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, SerializeDisplay, DeserializeFromStr)]
 pub struct Ability(AbilityNamespace, AbilityName);
 
 impl Ability {
@@ -23,6 +22,42 @@ impl Ability {
 
     pub fn name(&self) -> &AbilityName {
         &self.1
+    }
+}
+
+impl Ability {
+    pub fn new(namespace: AbilityNamespace, name: AbilityName) -> Self {
+        Self(namespace, name)
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.as_ref().len() + self.1.as_ref().len() + 1
+    }
+}
+
+impl PartialOrd for Ability {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        return Some(self.cmp(&other));
+    }
+}
+
+impl Ord for Ability {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // if length is equal, compare by bytes, including '/' separator, without allocating
+        let ar_self = [self.0.as_ref(), "/", self.1.as_ref()];
+        let ar_other = [other.0.as_ref(), "/", other.1.as_ref()];
+
+        let iter_self = ar_self.iter().map(|s| s.as_bytes()).flatten();
+        let iter_other = ar_other.iter().map(|s| s.as_bytes()).flatten();
+
+        for (a, b) in iter_self.zip(iter_other) {
+            match a.cmp(b) {
+                Ordering::Equal => continue,
+                ord => return ord,
+            }
+        }
+
+        return self.len().cmp(&other.len());
     }
 }
 
@@ -64,14 +99,14 @@ pub enum AbilityParseError {
 
 const ALLOWED_CHARS: &str = "-_.+*";
 
-fn is_allowed(c: char) -> bool {
+fn not_allowed(c: char) -> bool {
     !c.is_alphanumeric() && !ALLOWED_CHARS.contains(c)
 }
 
 impl FromStr for AbilityNamespace {
     type Err = AbilityParseError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s.contains(is_allowed) {
+        if s.is_empty() || s.contains(not_allowed) {
             Err(AbilityParseError::InvalidCharacter(s.into()))
         } else {
             Ok(Self(s.into()))
@@ -82,7 +117,7 @@ impl FromStr for AbilityNamespace {
 impl FromStr for AbilityName {
     type Err = AbilityParseError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s.contains(is_allowed) {
+        if s.is_empty() || s.contains(not_allowed) {
             Err(AbilityParseError::InvalidCharacter(s.into()))
         } else {
             Ok(Self(s.into()))
@@ -147,6 +182,7 @@ mod test {
             "my-namespace-/",
             "my--namespace[]",
             "not a valid namespace",
+            "",
         ] {
             s.parse::<AbilityNamespace>().unwrap_err();
         }
@@ -178,8 +214,29 @@ mod test {
             "kv-list",
             "some:ns/some-name",
             "msg/wrong/str",
+            "/",
         ] {
             s.parse::<Ability>().unwrap_err();
         }
+    }
+
+    #[test]
+    fn ordering() {
+        let ab0: Ability = "a/b".parse().unwrap();
+        let ab1: Ability = "a/c".parse().unwrap();
+        let ab2: Ability = "aa/a".parse().unwrap();
+        let ab3: Ability = "b/a".parse().unwrap();
+        let ab4: Ability = "kv*/read".parse().unwrap();
+        let ab5: Ability = "kv/list".parse().unwrap();
+        let ab6: Ability = "kv/read".parse().unwrap();
+        let ab7: Ability = "kva/get".parse().unwrap();
+
+        assert!(ab0 < ab1, "abilities are sorted by byte value");
+        assert!(ab1 < ab2, "abilities are sorted by byte value");
+        assert!(ab2 < ab3, "abilities are sorted by byte value");
+        assert!(ab3 < ab4, "abilities are sorted by byte value");
+        assert!(ab4 < ab5, "* is sorted before /");
+        assert!(ab5 < ab6, "abilities are sorted by byte value");
+        assert!(ab6 < ab7, "abilities are sorted by byte value");
     }
 }
