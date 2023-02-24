@@ -11,12 +11,12 @@ use serde_with::{serde_as, DisplayFromStr};
 use iri_string::types::UriString;
 use siwe::Message;
 
-pub type NoteBene<T> = Vec<BTreeMap<String, T>>;
-pub type Attenuations<NB> = BTreeMap<UriString, BTreeMap<Ability, NoteBene<NB>>>;
+pub type NotaBene<T> = Vec<BTreeMap<String, T>>;
+pub type Attenuations<NB> = BTreeMap<UriString, BTreeMap<Ability, NotaBene<NB>>>;
 
 /// Representation of a set of delegated Capabilities.
 #[serde_as]
-#[derive(Clone, Default, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Capability<NB = Value>
 where
     NB: for<'d> Deserialize<'d> + Serialize,
@@ -24,7 +24,7 @@ where
     /// The actions that are allowed for the given target within this namespace.
     #[serde(rename = "att")]
     #[serde_as(as = "BTreeMap<DisplayFromStr, _>")]
-    attenuations: BTreeMap<UriString, BTreeMap<Ability, NoteBene<NB>>>,
+    attenuations: BTreeMap<UriString, BTreeMap<Ability, NotaBene<NB>>>,
 
     /// Cids of parent delegations which these capabilities are attenuated from
     #[serde(rename = "prf")]
@@ -44,6 +44,14 @@ impl<NB> Capability<NB>
 where
     NB: for<'d> Deserialize<'d> + Serialize,
 {
+    /// Create a new empty Capability.
+    pub fn new() -> Self {
+        Self {
+            attenuations: Default::default(),
+            proof: Default::default(),
+        }
+    }
+
     /// Check if a particular action is allowed for the specified target, or is allowed globally.
     pub fn can<T, A>(
         &self,
@@ -164,7 +172,7 @@ where
     }
 
     /// Read the set of abilities granted in this capabilities set
-    pub fn abilities(&self) -> &BTreeMap<UriString, BTreeMap<Ability, NoteBene<NB>>> {
+    pub fn abilities(&self) -> &BTreeMap<UriString, BTreeMap<Ability, NotaBene<NB>>> {
         &self.attenuations
     }
 
@@ -172,7 +180,7 @@ where
     pub fn abilities_for<T>(
         &self,
         target: T,
-    ) -> Result<Option<&BTreeMap<Ability, NoteBene<NB>>>, T::Error>
+    ) -> Result<Option<&BTreeMap<Ability, NotaBene<NB>>>, T::Error>
     where
         T: TryInto<UriString>,
     {
@@ -309,6 +317,15 @@ where
         base64::decode_config(encoded, base64::URL_SAFE_NO_PAD)
             .map_err(DecodingError::Base64Decode)
             .and_then(|bytes| serde_json::from_slice(&bytes).map_err(DecodingError::De))
+    }
+}
+
+impl<NB> Default for Capability<NB>
+where
+    NB: for<'d> Deserialize<'d> + Serialize,
+{
+    fn default() -> Self {
+        Self::new()
     }
 }
 

@@ -3,7 +3,7 @@ mod capability;
 
 pub use ability::{Ability, AbilityName, AbilityNamespace, AbilityParseError, ActionParseError};
 pub use capability::{
-    Attenuations, Capability, ConvertError, DecodingError, EncodingError, NoteBene,
+    Attenuations, Capability, ConvertError, DecodingError, EncodingError, NotaBene,
     VerificationError,
 };
 
