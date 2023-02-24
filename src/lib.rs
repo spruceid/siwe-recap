@@ -16,13 +16,13 @@ mod test {
     use serde_json::Value;
     use siwe::Message;
 
-    const SIWE_WITH_INTERLEAVED_RES: &'static str =
+    const SIWE_WITH_INTERLEAVED_RES: &str =
         include_str!("../tests/siwe_with_interleaved_resources.txt");
-    const SIWE_WITH_STATEMENT_NO_CAPS: &'static str =
+    const SIWE_WITH_STATEMENT_NO_CAPS: &str =
         include_str!("../tests/siwe_with_statement_no_caps.txt");
-    const SIWE_WITH_STATEMENT: &'static str = include_str!("../tests/siwe_with_statement.txt");
-    const SIWE_NO_CAPS: &'static str = include_str!("../tests/siwe_with_no_caps.txt");
-    const SIWE: &'static str = include_str!("../tests/siwe_with_caps.txt");
+    const SIWE_WITH_STATEMENT: &str = include_str!("../tests/siwe_with_statement.txt");
+    const SIWE_NO_CAPS: &str = include_str!("../tests/siwe_with_no_caps.txt");
+    const SIWE: &str = include_str!("../tests/siwe_with_caps.txt");
 
     #[test]
     fn no_caps_statement_append() {

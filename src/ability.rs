@@ -33,11 +33,15 @@ impl Ability {
     pub fn len(&self) -> usize {
         self.0.as_ref().len() + self.1.as_ref().len() + 1
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.as_ref().is_empty() && self.1.as_ref().is_empty()
+    }
 }
 
 impl PartialOrd for Ability {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        return Some(self.cmp(&other));
+        Some(self.cmp(other))
     }
 }
 
@@ -47,8 +51,8 @@ impl Ord for Ability {
         let ar_self = [self.0.as_ref(), "/", self.1.as_ref()];
         let ar_other = [other.0.as_ref(), "/", other.1.as_ref()];
 
-        let iter_self = ar_self.iter().map(|s| s.as_bytes()).flatten();
-        let iter_other = ar_other.iter().map(|s| s.as_bytes()).flatten();
+        let iter_self = ar_self.iter().flat_map(|s| s.as_bytes());
+        let iter_other = ar_other.iter().flat_map(|s| s.as_bytes());
 
         for (a, b) in iter_self.zip(iter_other) {
             match a.cmp(b) {
@@ -57,7 +61,7 @@ impl Ord for Ability {
             }
         }
 
-        return self.len().cmp(&other.len());
+        self.len().cmp(&other.len())
     }
 }
 

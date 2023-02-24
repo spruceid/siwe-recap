@@ -387,7 +387,7 @@ pub enum VerificationError {
 mod test {
     use super::*;
 
-    const JSON_CAP: &'static str = include_str!("../tests/serialized_cap.json");
+    const JSON_CAP: &str = include_str!("../tests/serialized_cap.json");
 
     #[test]
     fn deser() {
