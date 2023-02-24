@@ -13,7 +13,7 @@ pub const RESOURCE_PREFIX: &str = "urn:recap:";
 #[cfg(test)]
 mod test {
     use super::*;
-    use serde_json::Value;
+    use libipld_core::ipld::Ipld;
     use siwe::Message;
 
     const SIWE_WITH_INTERLEAVED_RES: &'static str =
@@ -26,7 +26,7 @@ mod test {
 
     #[test]
     fn no_caps_statement_append() {
-        let msg = Capability::<Value>::default()
+        let msg = Capability::<Ipld>::default()
             .build_message(Message {
                 domain: "example.com".parse().unwrap(),
                 address: Default::default(),
@@ -52,7 +52,7 @@ mod test {
 
     #[test]
     fn build_delegation_statement_append() {
-        let msg = Capability::<Value>::default()
+        let msg = Capability::<Ipld>::default()
             .with_action_convert("credential:*", "credential/present", [])
             .unwrap()
             .build_message(Message {
@@ -80,7 +80,7 @@ mod test {
 
     #[test]
     fn no_caps() {
-        let msg = Capability::<Value>::default()
+        let msg = Capability::<Ipld>::default()
             .build_message(Message {
                 domain: "example.com".parse().unwrap(),
                 address: Default::default(),
@@ -106,7 +106,7 @@ mod test {
 
     #[test]
     fn build_delegation() {
-        let msg = Capability::<Value>::default()
+        let msg = Capability::<Ipld>::default()
             .with_actions_convert("urn:credential:type:type1", [("credential/present", [])])
             .unwrap()
             .with_actions_convert(
@@ -163,7 +163,7 @@ mod test {
     fn verify() {
         let msg: Message = SIWE.trim().parse().unwrap();
         assert!(
-            Capability::<Value>::extract_and_verify(&msg)
+            Capability::<Ipld>::extract_and_verify(&msg)
                 .transpose()
                 .expect("unable to parse resources as capabilities")
                 .is_ok(),
@@ -176,14 +176,14 @@ mod test {
             .iter_mut()
             .for_each(|statement| statement.push_str(" I am the walrus!"));
         assert!(
-            Capability::<Value>::extract_and_verify(&altered_msg_1).is_err(),
+            Capability::<Ipld>::extract_and_verify(&altered_msg_1).is_err(),
             "altered statement incorrectly matched capabilities"
         );
 
         let mut altered_msg_2 = msg.clone();
         altered_msg_2.uri = "did:key:altered".parse().unwrap();
         assert!(
-            Capability::<Value>::extract_and_verify(&altered_msg_2).is_err(),
+            Capability::<Ipld>::extract_and_verify(&altered_msg_2).is_err(),
             "altered uri incorrectly matched capabilities"
         );
     }
@@ -192,7 +192,7 @@ mod test {
     fn verify_interleaved_resources() {
         let msg: Message = SIWE_WITH_INTERLEAVED_RES.trim().parse().unwrap();
         assert!(
-            Capability::<Value>::extract_and_verify(&msg)
+            Capability::<Ipld>::extract_and_verify(&msg)
                 .unwrap()
                 .is_none(),
             "recap resource should come last"
