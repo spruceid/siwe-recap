@@ -257,7 +257,7 @@ where
         if self.attenuations.is_empty() {
             return Ok(message);
         }
-        let statement = self.to_statement(&message.uri);
+        let statement = self.to_statement();
         let encoded: UriString = self.try_into()?;
         message.resources.push(encoded);
         let m = message.statement.unwrap_or_default();
@@ -270,11 +270,10 @@ where
     }
 
     /// Generate a ReCap statement from capabilities and URI (delegee).
-    pub fn to_statement(&self, delegee_uri: &UriString) -> String {
+    pub fn to_statement(&self) -> String {
         [
-            "I further authorize ".to_string(),
-            delegee_uri.to_string(),
-            " to perform the following actions on my behalf:".to_string(),
+            "I further authorize the stated URI to perform the following actions on my behalf:"
+                .to_string(),
             self.to_statement_lines()
                 .enumerate()
                 .map(|(n, line)| format!(" ({}) {line}", n + 1))
@@ -296,7 +295,7 @@ where
     /// Extract the encoded capabilities from a SIWE message and ensures the correctness of the statement.
     pub fn extract_and_verify(message: &Message) -> Result<Option<Self>, VerificationError> {
         if let Some(c) = Self::extract(message)? {
-            let expected = c.to_statement(&message.uri);
+            let expected = c.to_statement();
             match &message.statement {
                 Some(s) if s.ends_with(&expected) => Ok(Some(c)),
                 _ => Err(VerificationError::IncorrectStatement(expected)),

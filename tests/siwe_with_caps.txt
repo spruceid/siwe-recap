@@ -1,7 +1,7 @@
 example.com wants you to sign in with your Ethereum account:
 0x0000000000000000000000000000000000000000
 
-I further authorize did:key:example to perform the following actions on my behalf: (1) "kv": "get", "list", "metadata" for "kepler:ens:example.eth://default/kv". (2) "kv": "delete", "get", "list", "metadata", "put" for "kepler:ens:example.eth://default/kv/dapp-space". (3) "kv": "delete", "get", "list", "metadata", "put" for "kepler:ens:example.eth://default/kv/public". (4) "credential": "present" for "urn:credential:type:type1".
+I further authorize the stated URI to perform the following actions on my behalf: (1) "kv": "get", "list", "metadata" for "kepler:ens:example.eth://default/kv". (2) "kv": "delete", "get", "list", "metadata", "put" for "kepler:ens:example.eth://default/kv/dapp-space". (3) "kv": "delete", "get", "list", "metadata", "put" for "kepler:ens:example.eth://default/kv/public". (4) "credential": "present" for "urn:credential:type:type1".
 
 URI: did:key:example
 Version: 1

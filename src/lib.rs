@@ -179,13 +179,6 @@ mod test {
             Capability::<Value>::extract_and_verify(&altered_msg_1).is_err(),
             "altered statement incorrectly matched capabilities"
         );
-
-        let mut altered_msg_2 = msg.clone();
-        altered_msg_2.uri = "did:key:altered".parse().unwrap();
-        assert!(
-            Capability::<Value>::extract_and_verify(&altered_msg_2).is_err(),
-            "altered uri incorrectly matched capabilities"
-        );
     }
 
     #[test]

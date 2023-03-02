@@ -1,7 +1,7 @@
 example.com wants you to sign in with your Ethereum account:
 0x0000000000000000000000000000000000000000
 
-Some custom statement. I further authorize did:key:example to perform the following actions on my behalf: (1) "credential": "present" for "credential:*".
+Some custom statement. I further authorize the stated URI to perform the following actions on my behalf: (1) "credential": "present" for "credential:*".
 
 URI: did:key:example
 Version: 1
