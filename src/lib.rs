@@ -1,54 +1,33 @@
-mod builder;
+mod ability;
 mod capability;
-mod error;
-mod namespace;
-mod set;
-mod translation;
 
-pub use builder::Builder;
-pub use capability::Capability;
-pub use error::Error;
-pub use namespace::Namespace;
-pub use set::Set;
-pub use translation::{capabilities_to_statement, extract_capabilities};
-
-use siwe::Message;
+pub use ability::{Ability, AbilityName, AbilityNamespace, AbilityParseError, ActionParseError};
+pub use capability::{
+    Attenuations, Capability, ConvertError, DecodingError, EncodingError, NotaBene,
+    VerificationError,
+};
 
 /// The prefix for a ReCap uri.
 pub const RESOURCE_PREFIX: &str = "urn:recap:";
 
-/// Verifies a ReCap statement.
-///
-/// Checks that the encoded delegations match the human-readable description in the statement, and
-/// that the URI displayed in the statement matches the uri field.
-pub fn verify_statement(message: &Message) -> Result<bool, Error> {
-    let capabilities = extract_capabilities(message)?;
-    let generated_statement = capabilities_to_statement(&capabilities, &message.uri);
-    let verified = match (&message.statement, &generated_statement) {
-        (None, None) => true,
-        (Some(o), Some(g)) => o.ends_with(g),
-        _ => false,
-    };
-    Ok(verified)
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
+    use serde_json::Value;
     use siwe::Message;
 
-    const SIWE_WITH_INTERLEAVED_RES: &'static str =
+    const SIWE_WITH_INTERLEAVED_RES: &str =
         include_str!("../tests/siwe_with_interleaved_resources.txt");
-    const SIWE_WITH_STATEMENT_NO_CAPS: &'static str =
+    const SIWE_WITH_STATEMENT_NO_CAPS: &str =
         include_str!("../tests/siwe_with_statement_no_caps.txt");
-    const SIWE_WITH_STATEMENT: &'static str = include_str!("../tests/siwe_with_statement.txt");
-    const SIWE_NO_CAPS: &'static str = include_str!("../tests/siwe_with_no_caps.txt");
-    const SIWE: &'static str = include_str!("../tests/siwe_with_caps.txt");
+    const SIWE_WITH_STATEMENT: &str = include_str!("../tests/siwe_with_statement.txt");
+    const SIWE_NO_CAPS: &str = include_str!("../tests/siwe_with_no_caps.txt");
+    const SIWE: &str = include_str!("../tests/siwe_with_caps.txt");
 
     #[test]
     fn no_caps_statement_append() {
-        let msg = Builder::new()
-            .build(Message {
+        let msg = Capability::<Value>::default()
+            .build_message(Message {
                 domain: "example.com".parse().unwrap(),
                 address: Default::default(),
                 statement: Some("Some custom statement.".into()),
@@ -73,11 +52,10 @@ mod test {
 
     #[test]
     fn build_delegation_statement_append() {
-        let credential: Namespace = "credential".parse().unwrap();
-
-        let msg = Builder::new()
-            .with_default_actions(&credential, ["present"])
-            .build(Message {
+        let msg = Capability::<Value>::default()
+            .with_action_convert("credential:*", "credential/present", [])
+            .unwrap()
+            .build_message(Message {
                 domain: "example.com".parse().unwrap(),
                 address: Default::default(),
                 statement: Some("Some custom statement.".into()),
@@ -94,7 +72,7 @@ mod test {
             .expect("failed to build SIWE delegation");
 
         assert_eq!(
-            SIWE_WITH_STATEMENT,
+            SIWE_WITH_STATEMENT.trim(),
             msg.to_string(),
             "generated SIWE message did not match expectation"
         );
@@ -102,8 +80,8 @@ mod test {
 
     #[test]
     fn no_caps() {
-        let msg = Builder::new()
-            .build(Message {
+        let msg = Capability::<Value>::default()
+            .build_message(Message {
                 domain: "example.com".parse().unwrap(),
                 address: Default::default(),
                 statement: None,
@@ -128,28 +106,37 @@ mod test {
 
     #[test]
     fn build_delegation() {
-        let credential: Namespace = "credential".parse().unwrap();
-        let kepler: Namespace = "kepler".parse().unwrap();
-
-        let msg = Builder::new()
-            .with_default_actions(&credential, ["present"])
-            .with_actions(&credential, "type:type1", ["present"])
-            .with_actions(
-                &kepler,
+        let msg = Capability::<Value>::default()
+            .with_actions_convert("urn:credential:type:type1", [("credential/present", [])])
+            .unwrap()
+            .with_actions_convert(
                 "kepler:ens:example.eth://default/kv",
-                ["list", "get", "metadata"],
+                [("kv/list", []), ("kv/get", []), ("kv/metadata", [])],
             )
-            .with_actions(
-                &kepler,
+            .unwrap()
+            .with_actions_convert(
                 "kepler:ens:example.eth://default/kv/public",
-                ["list", "get", "metadata", "put", "delete"],
+                [
+                    ("kv/list", []),
+                    ("kv/get", []),
+                    ("kv/metadata", []),
+                    ("kv/put", []),
+                    ("kv/delete", []),
+                ],
             )
-            .with_actions(
-                &kepler,
+            .unwrap()
+            .with_actions_convert(
                 "kepler:ens:example.eth://default/kv/dapp-space",
-                ["list", "get", "metadata", "put", "delete"],
+                [
+                    ("kv/list", []),
+                    ("kv/get", []),
+                    ("kv/metadata", []),
+                    ("kv/put", []),
+                    ("kv/delete", []),
+                ],
             )
-            .build(Message {
+            .unwrap()
+            .build_message(Message {
                 domain: "example.com".parse().unwrap(),
                 address: Default::default(),
                 statement: None,
@@ -166,7 +153,7 @@ mod test {
             .expect("failed to build SIWE delegation");
 
         assert_eq!(
-            SIWE,
+            SIWE.trim(),
             msg.to_string(),
             "generated SIWE message did not match expectation"
         );
@@ -174,9 +161,12 @@ mod test {
 
     #[test]
     fn verify() {
-        let msg: Message = SIWE.parse().unwrap();
+        let msg: Message = SIWE.trim().parse().unwrap();
         assert!(
-            verify_statement(&msg).expect("unable to parse resources as capabilities"),
+            Capability::<Value>::extract_and_verify(&msg)
+                .transpose()
+                .expect("unable to parse resources as capabilities")
+                .is_ok(),
             "statement did not match capabilities"
         );
 
@@ -186,24 +176,19 @@ mod test {
             .iter_mut()
             .for_each(|statement| statement.push_str(" I am the walrus!"));
         assert!(
-            !verify_statement(&altered_msg_1).expect("unable to parse resources as capabilities"),
+            Capability::<Value>::extract_and_verify(&altered_msg_1).is_err(),
             "altered statement incorrectly matched capabilities"
-        );
-
-        let mut altered_msg_2 = msg.clone();
-        altered_msg_2.uri = "did:key:altered".parse().unwrap();
-        assert!(
-            !verify_statement(&altered_msg_2).expect("unable to parse resources as capabilities"),
-            "altered uri incorrectly matched capabilities"
         );
     }
 
     #[test]
     fn verify_interleaved_resources() {
-        let msg: Message = SIWE_WITH_INTERLEAVED_RES.parse().unwrap();
+        let msg: Message = SIWE_WITH_INTERLEAVED_RES.trim().parse().unwrap();
         assert!(
-            verify_statement(&msg).expect("unable to parse resources as capabilities"),
-            "statement did not match capabilities"
+            Capability::<Value>::extract_and_verify(&msg)
+                .unwrap()
+                .is_none(),
+            "recap resource should come last"
         );
     }
 }
