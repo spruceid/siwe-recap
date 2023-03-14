@@ -1,6 +1,6 @@
 # EIP-5573: SIWE ReCap
 
-Use this crate to build wallet-signable messages with capability delegations. The generated message contains two representations of the capabilities: an unambiguous machine-readable representation, and a human-readable description. Of the two representations, the latter is deterministically generated from the former.
+This crate implements [EIP-5573](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-5573.md). Use this crate to build wallet-signable messages with capability delegations. The generated message contains two representations of the capabilities: an unambiguous machine-readable representation, and a human-readable description. Of the two representations, the latter is deterministically generated from the former.
 
 ## Message formats
 
