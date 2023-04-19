@@ -3,7 +3,7 @@ use cid::Cid;
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, DisplayFromStr};
+use serde_with::{serde_as, DeserializeAs, SerializeAs};
 
 use iri_string::types::UriString;
 use siwe::Message;
@@ -23,7 +23,7 @@ pub struct Capability<NB> {
 
     /// Cids of parent delegations which these capabilities are attenuated from
     #[serde(rename = "prf")]
-    #[serde_as(as = "Vec<DisplayFromStr>")]
+    #[serde_as(as = "Vec<B58Cid>")]
     proof: Vec<Cid>,
 }
 
@@ -350,6 +350,35 @@ pub enum VerificationError {
     Decoding(#[from] DecodingError),
     #[error("incorrect statement in siwe message, expected to end with: {0}")]
     IncorrectStatement(String),
+}
+
+struct B58Cid;
+
+impl SerializeAs<Cid> for B58Cid {
+    fn serialize_as<S>(source: &Cid, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(
+            &source
+                .to_string_of_base(cid::multibase::Base::Base58Btc)
+                .map_err(serde::ser::Error::custom)?,
+        )
+    }
+}
+
+impl<'de> DeserializeAs<'de, Cid> for B58Cid {
+    fn deserialize_as<D>(deserializer: D) -> Result<Cid, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        use std::str::FromStr;
+        let s = String::deserialize(deserializer)?;
+        if !s.starts_with('z') {
+            return Err(serde::de::Error::custom("non-base58btc encoded Cid"));
+        };
+        Cid::from_str(&s).map_err(serde::de::Error::custom)
+    }
 }
 
 #[cfg(test)]
