@@ -236,11 +236,11 @@ where
     fn to_statement_lines(&self) -> impl Iterator<Item = String> + '_ {
         self.to_line_groups().map(|(resource, namespace, names)| {
             format!(
-                "\"{}\": {} for \"{}\".",
+                "'{}': {} for '{}'.",
                 namespace,
                 names
                     .iter()
-                    .map(|an| format!("\"{an}\""))
+                    .map(|an| format!("'{an}'"))
                     .collect::<Vec<String>>()
                     .join(", "),
                 resource
