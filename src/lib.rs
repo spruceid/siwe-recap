@@ -1,10 +1,9 @@
-mod ability;
 mod capability;
 
-pub use ability::{Ability, AbilityName, AbilityNamespace, AbilityParseError, ActionParseError};
-pub use capability::{
-    Attenuations, Capability, ConvertError, DecodingError, EncodingError, NotaBene,
-    VerificationError,
+pub use capability::{Capability, DecodingError, EncodingError, VerificationError};
+pub use ucan_capabilities_object::{
+    AbilityName, AbilityNameRef, AbilityNamespace, AbilityNamespaceRef, AbilityRef, CapsInner,
+    ConvertError, NotaBeneCollection,
 };
 
 /// The prefix for a ReCap uri.
@@ -52,9 +51,11 @@ mod test {
 
     #[test]
     fn build_delegation_statement_append() {
-        let msg = Capability::<Value>::default()
-            .with_action_convert("credential:*", "credential/present", [])
-            .unwrap()
+        let mut cap = Capability::<Value>::default();
+        cap.with_action_convert("credential:*", "credential/present", [])
+            .unwrap();
+
+        let msg = cap
             .build_message(Message {
                 domain: "example.com".parse().unwrap(),
                 address: Default::default(),

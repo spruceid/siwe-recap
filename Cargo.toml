@@ -9,10 +9,12 @@ repository = "https://github.com/spruceid/siwe-recap/"
 
 [dependencies]
 base64 = "0.12"
-iri-string = "0.6"
+iri-string = { version = "0.6", features = ["serde"] }
 siwe = "0.5"
 serde_json = { version = "1" }
 serde = { version = "1", features = ["derive"] }
 serde_with = { version = "2" }
 thiserror = "1"
 cid = "0.10"
+ucan-capabilities-object = "0.1"
+serde_jcs = "0.1"
